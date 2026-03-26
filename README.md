@@ -95,10 +95,17 @@ Vaerdata hentes via `src/app/api/weather/route.ts`, slik at API-nokkelen blir li
 ### Netlify
 
 1. Opprett et nytt prosjekt fra repoet i [Netlify](https://www.netlify.com/)
-2. Build command: `npm run build`
-3. Publish directory: `.next`
-4. Legg inn de samme miljoverdiene
-5. Deploy
+2. Velg framework preset for `Next.js` hvis Netlify foreslaar det
+3. Build command: `npm run build`
+4. La `Publish directory` staa tom eller bruke Netlify sin auto-detektering
+5. Legg inn de samme miljoverdiene
+6. Deploy
+
+Viktig:
+
+- Ikke deploy repo-roten som en statisk side.
+- Ikke bruk `.next` som vanlig publish directory for denne appen.
+- Hvis du ser bare en enkel HTML-side, er det som regel feil publish-oppsett eller en gammel deploy.
 
 For best opplevelse med Next.js er Vercel det enkleste valget.
 
