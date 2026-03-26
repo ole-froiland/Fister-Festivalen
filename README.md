@@ -96,16 +96,19 @@ Vaerdata hentes via `src/app/api/weather/route.ts`, slik at API-nokkelen blir li
 
 1. Opprett et nytt prosjekt fra repoet i [Netlify](https://www.netlify.com/)
 2. Velg framework preset for `Next.js` hvis Netlify foreslaar det
-3. Build command: `npm run build`
-4. La `Publish directory` staa tom eller bruke Netlify sin auto-detektering
-5. Legg inn de samme miljoverdiene
-6. Deploy
+3. Repoet inneholder `netlify.toml` med:
+   - build command `npm run build`
+   - publish directory `.next`
+   - Node `20`
+   - `@netlify/plugin-nextjs`
+4. Legg inn de samme miljoverdiene
+5. Deploy eller bruk `Clear cache and deploy site`
 
 Viktig:
 
 - Ikke deploy repo-roten som en statisk side.
-- Ikke bruk `.next` som vanlig publish directory for denne appen.
-- Hvis du ser bare en enkel HTML-side, er det som regel feil publish-oppsett eller en gammel deploy.
+- Hvis sitet tidligere ble satt opp som en enkel statisk side, maa gamle Site settings ryddes eller sitet opprettes pa nytt fra repoet.
+- Hvis du ser 404 eller en gammel enkel HTML-side, kjor `Clear cache and deploy site` etter at siste commit er hentet inn.
 
 For best opplevelse med Next.js er Vercel det enkleste valget.
 
