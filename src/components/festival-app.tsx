@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import {
   addDoc,
   doc,
@@ -76,6 +77,37 @@ const pulseCards = [
     icon: Music4,
   },
 ];
+
+const festivalPhotos = [
+  {
+    src: "/festival/C003451-R1-10-16.JPG",
+    alt: "Festivalfoto fra Fister-Festivalen ved vannet.",
+  },
+  {
+    src: "/festival/C003451-R1-12-18.JPG",
+    alt: "Festivalfoto fra Fister-Festivalen på bryggekanten.",
+  },
+  {
+    src: "/festival/C003451-R1-18-24.JPG",
+    alt: "Festivalfoto fra Fister-Festivalen med sommerstemning.",
+  },
+  {
+    src: "/festival/C003451-R1-19-25.JPG",
+    alt: "Festivalfoto fra Fister-Festivalen ved fjorden.",
+  },
+  {
+    src: "/festival/C003451-R1-21-27.JPG",
+    alt: "Festivalfoto fra Fister-Festivalen under hopp og aktivitet.",
+  },
+  {
+    src: "/festival/C003451-R1-22-28.JPG",
+    alt: "Festivalfoto fra Fister-Festivalen med brygge og baat.",
+  },
+  {
+    src: "/festival/C003451-R1-25-31.JPG",
+    alt: "Festivalfoto fra Fister-Festivalen i sommersol.",
+  },
+] as const;
 
 function toParticipant(docId: string, data: Record<string, unknown>): Participant {
   return {
@@ -345,6 +377,47 @@ export function FestivalApp() {
                 </a>
               </div>
 
+              <div className="mt-10 grid gap-4 lg:grid-cols-[1.28fr_0.72fr]">
+                <div className="group relative min-h-[18rem] overflow-hidden rounded-[1.85rem]">
+                  <Image
+                    alt={festivalPhotos[0].alt}
+                    className="object-cover transition duration-700 group-hover:scale-105"
+                    fill
+                    priority
+                    sizes="(max-width: 1024px) 100vw, 45vw"
+                    src={festivalPhotos[0].src}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-950/10 to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 p-6 text-white">
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/70">
+                      Fra Albumet
+                    </p>
+                    <p className="mt-2 max-w-md text-lg font-semibold sm:text-xl">
+                      Ekte bilder fra Fister-Festivalen gir forsiden riktig
+                      sommerpuls.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+                  {festivalPhotos.slice(1, 3).map((photo) => (
+                    <div
+                      key={photo.src}
+                      className="group relative min-h-[10rem] overflow-hidden rounded-[1.6rem]"
+                    >
+                      <Image
+                        alt={photo.alt}
+                        className="object-cover transition duration-700 group-hover:scale-105"
+                        fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 20vw"
+                        src={photo.src}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/45 to-transparent" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <div className="mt-10 grid gap-4 md:grid-cols-3">
                 {highlights.map((highlight) => {
                   const Icon = highlight.icon;
@@ -424,6 +497,48 @@ export function FestivalApp() {
 
               <WeatherCard />
               <CountdownCard festivalDate={FESTIVAL_DATE} />
+            </div>
+          </section>
+
+          <section className="section-anchor card-surface rounded-[2rem] p-6 sm:p-8 lg:p-10">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#0f766e]">
+                  Fra albumet
+                </p>
+                <h2 className="mt-4 font-display text-4xl text-slate-950 sm:text-5xl">
+                  Festivalglimt med ekte bryggestemning
+                </h2>
+              </div>
+              <p className="max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">
+                Jeg har lagt inn utvalgte bilder direkte pa forsiden, slik at
+                siden ser ut som Fister-Festivalen fra forste skjermbilde og
+                ikke bare som en generisk festivalmal.
+              </p>
+            </div>
+
+            <div className="mt-8 grid auto-rows-[14rem] gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {festivalPhotos.map((photo, index) => (
+                <article
+                  key={photo.src}
+                  className={`group relative overflow-hidden rounded-[1.75rem] ${
+                    index === 0
+                      ? "md:col-span-2 xl:row-span-2 min-h-[20rem]"
+                      : index === 3 || index === 6
+                        ? "md:col-span-2"
+                        : ""
+                  }`}
+                >
+                  <Image
+                    alt={photo.alt}
+                    className="object-cover transition duration-700 group-hover:scale-105"
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 25vw"
+                    src={photo.src}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/35 via-slate-950/5 to-transparent" />
+                </article>
+              ))}
             </div>
           </section>
 
