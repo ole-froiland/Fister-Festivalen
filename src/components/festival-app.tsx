@@ -343,6 +343,20 @@ export function FestivalApp() {
         </header>
 
         <main className="flex flex-1 flex-col gap-6">
+          <section className="section-anchor">
+            <div className="group relative min-h-[16rem] overflow-hidden rounded-[2rem] sm:min-h-[22rem] lg:min-h-[30rem]">
+              <Image
+                alt="Stort festivalbilde fra Fister-Festivalen ved vannet."
+                className="object-cover transition duration-700 group-hover:scale-105"
+                fill
+                priority
+                sizes="100vw"
+                src="/festival/hero-feature.jpg"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-slate-950/10 to-transparent" />
+            </div>
+          </section>
+
           <section className="section-anchor grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
             <div className="card-surface animate-fade-up overflow-hidden rounded-[2rem] p-6 sm:p-8 lg:p-10">
               <div className="inline-flex items-center gap-2 rounded-full bg-[#0f766e]/10 px-4 py-2 text-sm font-semibold text-[#0f766e]">
