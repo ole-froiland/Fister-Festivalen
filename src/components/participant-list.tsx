@@ -1,7 +1,11 @@
 import { ListChecks, LoaderCircle, UsersRound } from "lucide-react";
 
 import type { LoadState, Participant } from "@/lib/types";
-import { formatRelativeTime } from "@/lib/utils";
+import {
+  formatParticipantLabel,
+  formatRelativeTime,
+  getParticipantPartySize,
+} from "@/lib/utils";
 
 type ParticipantListProps = {
   participants: Participant[];
@@ -12,6 +16,11 @@ export function ParticipantList({
   participants,
   state,
 }: ParticipantListProps) {
+  const totalParticipants = participants.reduce(
+    (sum, participant) => sum + getParticipantPartySize(participant),
+    0,
+  );
+
   return (
     <div className="card-surface rounded-[2rem] p-6 sm:p-8">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -31,7 +40,7 @@ export function ParticipantList({
           </p>
           <div className="mt-2 flex items-center gap-3">
             <UsersRound className="size-5 text-[#f7d794]" />
-            <span className="text-3xl font-bold">{participants.length}</span>
+            <span className="text-3xl font-bold">{totalParticipants}</span>
           </div>
         </div>
       </div>
@@ -76,7 +85,7 @@ export function ParticipantList({
             >
               <div className="min-w-0">
                 <p className="truncate text-base font-semibold text-slate-900">
-                  {participant.name}
+                  {formatParticipantLabel(participant)}
                 </p>
                 <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-500">
                   {formatRelativeTime(participant.createdAtMs)}

@@ -21,7 +21,9 @@ html {
 }
 
 body {
+  margin: 0;
   min-height: 100vh;
+  overflow-x: hidden;
   background:
     radial-gradient(circle at top left, rgba(255, 211, 137, 0.65), transparent 28%),
     radial-gradient(circle at top right, rgba(133, 202, 255, 0.55), transparent 30%),
@@ -83,6 +85,16 @@ a {
   }
 }
 
+@keyframes marquee-scroll {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
 .animate-float {
   animation: float 8s ease-in-out infinite;
 }
@@ -93,4 +105,22 @@ a {
 
 .animate-fade-up-delay {
   animation: fade-up 0.8s ease-out 0.15s both;
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll 104s linear infinite;
+  will-change: transform;
+}
+
+.marquee-track-reverse {
+  animation-direction: reverse;
+  animation-duration: 116s;
+}
+
+.marquee-group {
+  display: flex;
+  gap: 0;
+  padding-right: 0;
 }

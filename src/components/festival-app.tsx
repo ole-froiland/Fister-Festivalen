@@ -1,130 +1,620 @@
 "use client";
 
 import Image from "next/image";
-import {
-  addDoc,
-  doc,
-  onSnapshot,
-  orderBy,
-  query,
-  writeBatch,
-} from "firebase/firestore";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { doc, onSnapshot, orderBy, query, writeBatch } from "firebase/firestore";
 import {
   ArrowRight,
-  Camera,
+  CalendarDays,
+  ChevronDown,
+  ChevronUp,
+  CloudSun,
+  Download,
+  LoaderCircle,
   MapPin,
-  Music4,
-  Sparkles,
-  Trophy,
+  UploadCloud,
   UsersRound,
-  UtensilsCrossed,
-  Waves,
 } from "lucide-react";
-import { startTransition, useEffect, useState } from "react";
-
-import { CountdownCard } from "@/components/countdown-card";
-import { GallerySection } from "@/components/gallery-section";
-import { ParticipantList } from "@/components/participant-list";
-import { SignupForm } from "@/components/signup-form";
-import { ToastRegion } from "@/components/toast-region";
-import { WeatherCard } from "@/components/weather-card";
 import {
-  db,
-  getGalleryCollection,
-  getParticipantsCollection,
-  hasFirebaseConfig,
-  storage,
-} from "@/lib/firebase";
-import type {
-  GalleryItem,
-  LoadState,
-  Participant,
-  ToastMessage,
-} from "@/lib/types";
-import { formatFestivalDate, slugifyFileName } from "@/lib/utils";
+  startTransition,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 
-const FESTIVAL_DATE =
-  process.env.NEXT_PUBLIC_FESTIVAL_DATE ?? "2026-07-18T12:00:00+02:00";
+import { ToastRegion } from "@/components/toast-region";
+import { db, getParticipantsCollection, hasFirebaseConfig } from "@/lib/firebase";
+import type { LoadState, Participant, ToastMessage } from "@/lib/types";
+import { formatParticipantLabel, getParticipantPartySize } from "@/lib/utils";
 
-const highlights = [
-  {
-    icon: Waves,
-    title: "Bading",
-    description: "Morgendukkert, bryggeliv og korte pauser ved vannkanten.",
-  },
-  {
-    icon: Trophy,
-    title: "Konkurranser",
-    description: "Laglek, quiz og uhoytidelige sommerdueller for alle aldre.",
-  },
-  {
-    icon: UtensilsCrossed,
-    title: "Mat og drikke",
-    description: "Enkle festivalfavoritter, noe kaldt i glasset og langbordsstemning.",
-  },
-];
+const LOCAL_PARTICIPANTS_STORAGE_KEY = "fister-festivalen-local-participants";
+const IMAGE_ARCHIVE_PATH = "/fister-festivalen-bilder.zip";
 
-const pulseCards = [
+const festivalDetails = [
   {
-    label: "Lokasjon",
-    value: "Fister, Rogaland",
     icon: MapPin,
+    label: "Hvor",
+    value: "Fistervegen 816",
   },
   {
-    label: "Stemning",
-    value: "Sol, saltvann og senkede skuldre",
-    icon: Music4,
-  },
-];
-
-const festivalPhotos = [
-  {
-    src: "/festival/C003451-R1-10-16.JPG",
-    alt: "Festivalfoto fra Fister-Festivalen ved vannet.",
+    icon: CalendarDays,
+    label: "Nar",
+    value: "TBA",
   },
   {
-    src: "/festival/C003451-R1-12-18.JPG",
-    alt: "Festivalfoto fra Fister-Festivalen på bryggekanten.",
-  },
-  {
-    src: "/festival/C003451-R1-18-24.JPG",
-    alt: "Festivalfoto fra Fister-Festivalen med sommerstemning.",
-  },
-  {
-    src: "/festival/C003451-R1-19-25.JPG",
-    alt: "Festivalfoto fra Fister-Festivalen ved fjorden.",
-  },
-  {
-    src: "/festival/C003451-R1-21-27.JPG",
-    alt: "Festivalfoto fra Fister-Festivalen under hopp og aktivitet.",
-  },
-  {
-    src: "/festival/C003451-R1-22-28.JPG",
-    alt: "Festivalfoto fra Fister-Festivalen med brygge og baat.",
-  },
-  {
-    src: "/festival/C003451-R1-25-31.JPG",
-    alt: "Festivalfoto fra Fister-Festivalen i sommersol.",
+    icon: CloudSun,
+    label: "Vaermelding",
+    value: "TBA",
   },
 ] as const;
+
+type MarqueePhoto = {
+  src: string;
+  alt: string;
+  objectPosition?: string;
+};
+
+type SignupEntry = {
+  name: string;
+  companionCount: number;
+};
+
+function CompactSignupCta({
+  disabled,
+  onSubmit,
+}: {
+  disabled: boolean;
+  onSubmit: (entry: SignupEntry) => Promise<void>;
+}) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [name, setName] = useState("");
+  const [companionCount, setCompanionCount] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const totalToRegister = companionCount + 1;
+  const submitLabel = `Meld inn ${totalToRegister} ${
+    totalToRegister === 1 ? "person" : "personer"
+  }`;
+
+  function openSignup() {
+    setError(null);
+    setIsExpanded(true);
+  }
+
+  function closeSignup() {
+    setError(null);
+    setIsExpanded(false);
+  }
+
+  useEffect(() => {
+    if (!isExpanded) {
+      return;
+    }
+
+    const animationFrameId = window.requestAnimationFrame(() => {
+      inputRef.current?.focus();
+    });
+
+    return () => {
+      window.cancelAnimationFrame(animationFrameId);
+    };
+  }, [isExpanded]);
+
+  useEffect(() => {
+    if (!isExpanded) {
+      return;
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target;
+
+      if (!(target instanceof Node)) {
+        return;
+      }
+
+      if (containerRef.current?.contains(target)) {
+        return;
+      }
+
+      closeSignup();
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        closeSignup();
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isExpanded]);
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const trimmedName = name.trim();
+
+    if (trimmedName.length === 0) {
+      setError("Skriv inn minst ett navn.");
+      return;
+    }
+
+    setError(null);
+    setIsSubmitting(true);
+
+    try {
+      await onSubmit({
+        name: trimmedName,
+        companionCount,
+      });
+      setName("");
+      setCompanionCount(0);
+      closeSignup();
+    } catch (submitError) {
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : "Kunne ikke registrere paameldingen.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="mx-auto mt-10 w-full max-w-[58rem] sm:mt-12">
+      <div
+        ref={containerRef}
+        className={`mx-auto origin-center overflow-hidden rounded-full border border-[#d9c5a5] bg-[#eddabd] will-change-[width,max-width,transform] transition-[width,max-width,box-shadow,transform] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+          isExpanded
+            ? "w-full max-w-[58rem] shadow-[0_18px_40px_rgba(15,23,42,0.08)]"
+            : "w-[20rem] max-w-full shadow-[0_10px_24px_rgba(15,23,42,0.08)] hover:-translate-y-0.5 hover:shadow-[0_16px_32px_rgba(15,23,42,0.12)]"
+        }`}
+      >
+        <div
+          className={`relative transition-[height] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+            isExpanded ? "h-[11.5rem] sm:h-20" : "h-11"
+          }`}
+        >
+          <div
+            aria-hidden={isExpanded}
+            className={`absolute inset-0 transition-[opacity,transform,filter] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+              isExpanded
+                ? "pointer-events-none translate-y-1 scale-[0.985] opacity-0 blur-[3px]"
+                : "translate-y-0 scale-100 opacity-100 blur-0 delay-100"
+            }`}
+          >
+            <button
+              className="flex h-full w-full items-center justify-center gap-2 px-5 text-[0.85rem] font-semibold text-slate-900 sm:text-[0.9rem]"
+              onClick={openSignup}
+              type="button"
+            >
+              Meld deg p&aring;
+              <ArrowRight className="size-5" />
+            </button>
+          </div>
+
+          <form
+            className={`absolute inset-0 flex flex-wrap items-center gap-2 px-3 py-3 transition-[opacity,transform,filter] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] sm:flex-nowrap sm:gap-3 sm:px-4 ${
+              isExpanded
+                ? "translate-y-0 opacity-100 blur-0 delay-150"
+                : "pointer-events-none translate-y-2 scale-[0.992] opacity-0 blur-[3px]"
+            }`}
+            onSubmit={handleSubmit}
+          >
+            <input
+              className="order-1 h-12 min-w-0 basis-full bg-transparent px-3 text-[0.9rem] font-medium text-slate-950 outline-none placeholder:font-medium placeholder:text-slate-950 placeholder:opacity-100 disabled:cursor-default sm:h-14 sm:flex-1 sm:basis-auto sm:px-5 sm:text-[0.92rem] sm:max-w-[21rem] lg:max-w-[24rem]"
+              disabled={!isExpanded || isSubmitting}
+              maxLength={80}
+              onChange={(event) => {
+                setName(event.target.value);
+                if (error) {
+                  setError(null);
+                }
+              }}
+              placeholder="Skriv navnet"
+              ref={inputRef}
+              value={name}
+            />
+
+            <span
+              aria-hidden="true"
+              className="order-2 shrink-0 pl-1 text-lg font-semibold text-slate-700 sm:translate-x-8"
+            >
+              +
+            </span>
+
+            <div className="order-3 ml-1 flex h-12 shrink-0 items-center gap-2 px-0 sm:ml-16 sm:h-14 lg:ml-20">
+              <div className="min-w-[4.5rem] text-center">
+                <p className="text-[0.56rem] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  Følge
+                </p>
+                <p className="text-[1.15rem] font-semibold text-slate-900">
+                  {companionCount}
+                </p>
+              </div>
+              <div className="flex flex-col gap-1">
+                <button
+                  className="rounded-full p-1 text-slate-600 transition hover:bg-white/35 hover:text-slate-900 disabled:opacity-40"
+                  disabled={!isExpanded || isSubmitting}
+                  onClick={() =>
+                    setCompanionCount((current) => Math.min(current + 1, 20))
+                  }
+                  type="button"
+                >
+                  <ChevronUp className="size-4" />
+                </button>
+                <button
+                  className="rounded-full p-1 text-slate-600 transition hover:bg-white/35 hover:text-slate-900 disabled:opacity-40"
+                  disabled={!isExpanded || isSubmitting}
+                  onClick={() =>
+                    setCompanionCount((current) => Math.max(current - 1, 0))
+                  }
+                  type="button"
+                >
+                  <ChevronDown className="size-4" />
+                </button>
+              </div>
+            </div>
+
+            <button
+              className="order-4 inline-flex h-11 w-full items-center justify-center rounded-full bg-[#0d8a58] px-7 text-[0.85rem] font-semibold text-white transition hover:bg-[#0b744b] disabled:cursor-not-allowed disabled:opacity-50 sm:ml-auto sm:h-14 sm:w-auto sm:text-[0.9rem]"
+              disabled={!isExpanded || disabled || isSubmitting}
+              type="submit"
+            >
+              {isSubmitting ? (
+                <LoaderCircle className="size-5 animate-spin" />
+              ) : (
+                submitLabel
+              )}
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <div
+        className={`overflow-hidden transition-[max-height,opacity,transform] duration-300 ease-out ${
+          error ? "mt-3 max-h-16 translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"
+        }`}
+      >
+        <p className="text-sm font-medium text-[#9f1239]">{error}</p>
+      </div>
+    </div>
+  );
+}
+
+function FestivalInfoBand({
+  tone = "sand",
+  onQuickSignup,
+  signupDisabled = false,
+  participants = [],
+  participantState = "ready",
+  totalParticipants = 0,
+}: {
+  tone?: "sand" | "green";
+  onQuickSignup?: (entry: SignupEntry) => Promise<void>;
+  signupDisabled?: boolean;
+  participants?: Participant[];
+  participantState?: LoadState;
+  totalParticipants?: number;
+}) {
+  const isGreen = tone === "green";
+  const sectionClasses = isGreen ? "bg-[#b9d7ae]" : "bg-[#eddabd]";
+  const [isParticipantListOpen, setIsParticipantListOpen] = useState(false);
+  const imageUploadInputRef = useRef<HTMLInputElement | null>(null);
+
+  function openImagePicker() {
+    imageUploadInputRef.current?.click();
+  }
+
+  function handleImageSelection(event: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files ?? []);
+
+    if (files.length === 0) {
+      return;
+    }
+    event.target.value = "";
+  }
+
+  if (!isGreen) {
+    return (
+      <section id="festivalinfo" className="section-anchor">
+        <div
+          className={`relative left-1/2 flex w-screen -translate-x-1/2 px-6 py-8 sm:px-10 sm:py-10 lg:py-12 ${sectionClasses}`}
+        >
+          <div className="mx-auto w-full max-w-5xl text-center">
+            <p className="-mt-2 mb-5 font-display text-3xl font-semibold uppercase tracking-[0.16em] text-[#0d8a58] sm:-mt-3 sm:mb-7 sm:text-4xl">
+              Info
+            </p>
+            <p className="mx-auto max-w-4xl text-xl leading-9 text-slate-800 sm:text-2xl">
+              I tradisjon tro inviterer vi til Fister-festival ogs&aring; i
+              &aring;r!
+            </p>
+
+            <p className="mx-auto mt-4 max-w-4xl text-xl leading-9 text-slate-800 sm:text-2xl">
+              Det blir servert god mat og drikke, og dagen fylles med
+              aktiviteter som bading, bordtennis, fotball og ulike
+              konkurranser.
+            </p>
+
+            <p className="mx-auto mt-4 max-w-4xl text-xl leading-9 text-slate-800 sm:text-2xl">
+              Det eneste dere trenger &aring; ta med er badekl&aelig;r,
+              h&aring;ndkle og godt hum&oslash;r!
+            </p>
+
+            <div className="mx-auto mt-8 grid max-w-4xl gap-4 md:grid-cols-3">
+              {festivalDetails.map((detail) => {
+                const Icon = detail.icon;
+
+                return (
+                  <div
+                    key={detail.label}
+                    className="rounded-[1.5rem] border border-slate-900/10 bg-white/15 px-5 py-5 text-center shadow-[0_12px_28px_rgba(15,23,42,0.05)]"
+                  >
+                    <Icon className="mx-auto size-5 text-[#0d8a58]" />
+                    <p className="mt-3 text-sm font-semibold uppercase tracking-[0.22em] text-slate-600">
+                      {detail.label}
+                    </p>
+                    <p className="mt-2 text-lg font-semibold text-slate-900 sm:text-xl">
+                      {detail.value}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (!onQuickSignup) {
+    return null;
+  }
+
+  return (
+    <section id="signup" className="section-anchor">
+      <div className="relative left-1/2 flex w-screen -translate-x-1/2 items-start justify-center px-6 py-8 sm:min-h-[22rem] sm:py-10 lg:min-h-[25.5rem] lg:py-12">
+        <div aria-hidden="true" className="absolute inset-0">
+          <div className="absolute inset-y-0 left-0 w-1/2 bg-[#b9d7ae]" />
+          <div className="absolute inset-y-0 right-0 w-1/2 bg-[#eddabd]" />
+        </div>
+
+        <div className="relative mx-auto w-full max-w-7xl lg:grid lg:grid-cols-2">
+          <div className="mx-auto -translate-y-3 flex w-full max-w-4xl flex-col items-center text-center lg:col-start-1 lg:max-w-[46rem] lg:px-8 lg:-translate-y-4">
+            <h2 className="font-display text-5xl leading-none text-slate-950 sm:text-6xl lg:text-7xl">
+              P&aring;melding
+            </h2>
+
+            <CompactSignupCta
+              disabled={signupDisabled}
+              onSubmit={onQuickSignup}
+            />
+
+            <div className="mt-5 flex w-full justify-center">
+              <div
+                className={`w-full overflow-hidden rounded-[1.7rem] border border-[#d9c5a5] bg-[#eddabd] shadow-[0_18px_36px_rgba(15,23,42,0.1)] transition-[max-width] duration-300 ease-out ${
+                  isParticipantListOpen ? "max-w-2xl" : "max-w-[20rem]"
+                }`}
+              >
+                <button
+                  aria-controls="festival-inline-participants"
+                  aria-expanded={isParticipantListOpen}
+                  className={`inline-flex h-11 w-full items-center justify-center gap-2 px-6 text-base font-semibold text-slate-900 transition-[background-color,border-color] duration-300 ease-out hover:bg-[#e7d0ad] ${
+                    isParticipantListOpen ? "border-b border-[#d9c5a5]" : "border-b border-transparent"
+                  }`}
+                  onClick={() => setIsParticipantListOpen((current) => !current)}
+                  type="button"
+                >
+                  <UsersRound className="size-5 text-[#0d8a58]" />
+                  Antall deltakere
+                  <span className="text-base font-bold text-slate-950">
+                    {totalParticipants}
+                  </span>
+                  <ChevronDown
+                    className={`size-5 text-slate-700 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                      isParticipantListOpen ? "rotate-180" : "rotate-0"
+                    }`}
+                  />
+                </button>
+
+                <div
+                  aria-hidden={!isParticipantListOpen}
+                  id="festival-inline-participants"
+                  className={`overflow-hidden transition-[max-height,opacity] duration-300 ease-out ${
+                    isParticipantListOpen
+                      ? "max-h-[28rem] opacity-100"
+                      : "pointer-events-none max-h-0 opacity-0"
+                  }`}
+                >
+                  <div
+                    className={`text-left transition-transform duration-300 ease-out ${
+                      isParticipantListOpen ? "translate-y-0" : "-translate-y-1"
+                    }`}
+                  >
+                    <div className="p-4 sm:p-5">
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                        Alle påmeldte
+                      </p>
+
+                      {participantState === "loading" ? (
+                        <div className="mt-4 flex min-h-24 items-center justify-center rounded-[1.3rem] bg-white/55">
+                          <LoaderCircle className="size-6 animate-spin text-[#0f766e]" />
+                        </div>
+                      ) : null}
+
+                      {participantState !== "loading" &&
+                      participants.length === 0 ? (
+                        <div className="mt-4 rounded-[1.3rem] bg-white/55 px-4 py-5 text-sm leading-6 text-slate-600">
+                          Ingen har meldt seg pa enda.
+                        </div>
+                      ) : null}
+
+                      {participantState !== "loading" &&
+                      participants.length > 0 ? (
+                        <ul className="mt-4 max-h-[18rem] space-y-2 overflow-y-auto pr-1">
+                          {participants.map((participant, index) => (
+                            <li
+                              key={participant.id}
+                              className="flex items-center justify-between rounded-[1.2rem] bg-white/70 px-4 py-3 shadow-[0_10px_24px_rgba(15,23,42,0.06)]"
+                            >
+                              <span className="text-base font-semibold text-slate-900">
+                                {formatParticipantLabel(participant)}
+                              </span>
+                              <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                                #{participants.length - index}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="relative z-10 mx-auto mt-2 flex w-full max-w-xl items-center justify-center lg:col-start-2 lg:mt-0 lg:-translate-y-12 lg:px-8">
+            <div className="w-full p-6 text-center sm:p-8">
+              <h2 className="font-display text-5xl leading-none text-slate-950 sm:text-6xl lg:text-7xl">
+                Bilder
+              </h2>
+
+              <input
+                accept="image/*"
+                className="sr-only"
+                multiple
+                onChange={handleImageSelection}
+                ref={imageUploadInputRef}
+                type="file"
+              />
+
+              <div className="mt-10 flex flex-col items-center gap-5 sm:mt-12">
+                <button
+                  className="inline-flex h-11 w-[20rem] max-w-full items-center justify-center gap-2 rounded-full bg-[#0d8a58] px-5 text-base font-semibold text-white transition hover:bg-[#0b744b]"
+                  onClick={openImagePicker}
+                  type="button"
+                >
+                  <UploadCloud className="size-5" />
+                  Last opp bilder
+                </button>
+
+                <a
+                  className="inline-flex h-11 w-[20rem] max-w-full items-center justify-center gap-2 rounded-full bg-[#0d8a58] px-5 text-base font-semibold !text-white transition hover:bg-[#0b744b] visited:!text-white"
+                  download
+                  href={IMAGE_ARCHIVE_PATH}
+                >
+                  <Download className="size-5 text-white" />
+                  Last ned bilder
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+const marqueePhotos: ReadonlyArray<MarqueePhoto> = [
+  {
+    src: "/festival/marquee/C003451-R1-12-18.JPG",
+    alt: "Bilde fra fjorarets Fister-festival ved bryggen.",
+  },
+  {
+    src: "/festival/marquee/C003451-R1-17-23.JPG",
+    alt: "Bilde fra fjorarets Fister-festival med aktivitet ute.",
+  },
+  {
+    src: "/festival/marquee/C003451-R1-18-24.JPG",
+    alt: "Bilde fra fjorarets Fister-festival i sommersol.",
+  },
+  {
+    src: "/festival/marquee/C003451-R1-19-25.JPG",
+    alt: "Bilde fra fjorarets Fister-festival ved fjorden.",
+  },
+  {
+    src: "/festival/marquee/C003451-R1-20-26.JPG",
+    alt: "Bilde fra fjorarets Fister-festival med bryggestemning.",
+  },
+  {
+    src: "/festival/marquee/C003451-R1-22-28.JPG",
+    alt: "Bilde fra fjorarets Fister-festival ved vannet.",
+  },
+  {
+    src: "/festival/marquee/C003451-R1-23-29.JPG",
+    alt: "Bilde fra fjorarets Fister-festival med folk pa bryggen.",
+  },
+  {
+    src: "/festival/marquee/C003451-R1-25-31.JPG",
+    alt: "Bilde fra fjorarets Fister-festival i kveldssol.",
+  },
+] as const;
+
+const marqueeReversePhotos: ReadonlyArray<MarqueePhoto> = [
+  {
+    src: "/festival/marquee-reverse/IMG_0146.jpeg",
+    alt: "Bilde fra fjorarets Fister-festival i rullende galleri.",
+    objectPosition: "center 18%",
+  },
+  {
+    src: "/festival/marquee-reverse/IMG_0155.jpeg",
+    alt: "Bilde fra fjorarets Fister-festival i rullende galleri.",
+  },
+  {
+    src: "/festival/marquee-reverse/IMG_0183.jpeg",
+    alt: "Bilde fra fjorarets Fister-festival i rullende galleri.",
+  },
+  {
+    src: "/festival/marquee-reverse/IMG_0191.jpeg",
+    alt: "Bilde fra fjorarets Fister-festival i rullende galleri.",
+    objectPosition: "center 18%",
+  },
+  {
+    src: "/festival/marquee-reverse/IMG_0209.jpeg",
+    alt: "Bilde fra fjorarets Fister-festival i rullende galleri.",
+    objectPosition: "center 18%",
+  },
+  {
+    src: "/festival/marquee-reverse/IMG_3837.JPG",
+    alt: "Bilde fra fjorarets Fister-festival i rullende galleri.",
+  },
+  {
+    src: "/festival/marquee-reverse/IMG_9866.jpeg",
+    alt: "Bilde fra fjorarets Fister-festival i rullende galleri.",
+  },
+  {
+    src: "/festival/marquee-reverse/IMG_9932.jpeg",
+    alt: "Bilde fra fjorarets Fister-festival i rullende galleri.",
+    objectPosition: "center 20%",
+  },
+  {
+    src: "/festival/marquee-reverse/IMG_9964.jpeg",
+    alt: "Bilde fra fjorarets Fister-festival i rullende galleri.",
+    objectPosition: "center 18%",
+  },
+  {
+    src: "/festival/marquee-reverse/IMG_9973.jpeg",
+    alt: "Bilde fra fjorarets Fister-festival i rullende galleri.",
+  },
+];
 
 function toParticipant(docId: string, data: Record<string, unknown>): Participant {
   return {
     id: docId,
     name: typeof data.name === "string" ? data.name : "Ukjent deltaker",
-    createdAtMs:
-      typeof data.createdAtMs === "number" ? data.createdAtMs : Date.now(),
-  };
-}
-
-function toGalleryItem(docId: string, data: Record<string, unknown>): GalleryItem {
-  return {
-    id: docId,
-    name: typeof data.name === "string" ? data.name : "Festivalbilde",
-    url: typeof data.url === "string" ? data.url : "",
-    storagePath:
-      typeof data.storagePath === "string" ? data.storagePath : "gallery/unknown",
+    companionCount:
+      typeof data.companionCount === "number" && data.companionCount > 0
+        ? data.companionCount
+        : 0,
     createdAtMs:
       typeof data.createdAtMs === "number" ? data.createdAtMs : Date.now(),
   };
@@ -132,14 +622,14 @@ function toGalleryItem(docId: string, data: Record<string, unknown>): GalleryIte
 
 export function FestivalApp() {
   const [participants, setParticipants] = useState<Participant[]>([]);
-  const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
   const [participantsState, setParticipantsState] = useState<LoadState>(
-    hasFirebaseConfig ? "loading" : "disabled",
-  );
-  const [galleryState, setGalleryState] = useState<LoadState>(
-    hasFirebaseConfig ? "loading" : "disabled",
+    hasFirebaseConfig ? "loading" : "ready",
   );
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const totalParticipants = participants.reduce(
+    (sum, participant) => sum + getParticipantPartySize(participant),
+    0,
+  );
 
   function pushToast(toast: Omit<ToastMessage, "id">) {
     setToasts((current) => [
@@ -150,6 +640,53 @@ export function FestivalApp() {
       },
     ]);
   }
+
+  useEffect(() => {
+    if (hasFirebaseConfig) {
+      return;
+    }
+
+    try {
+      const storedValue = window.localStorage.getItem(
+        LOCAL_PARTICIPANTS_STORAGE_KEY,
+      );
+
+      if (!storedValue) {
+        return;
+      }
+
+      const parsedValue = JSON.parse(storedValue);
+
+      if (!Array.isArray(parsedValue)) {
+        return;
+      }
+
+      const parsedParticipants = parsedValue
+        .map((item) => toParticipant(String(item?.id ?? crypto.randomUUID()), item))
+        .sort((left, right) => right.createdAtMs - left.createdAtMs);
+
+      const animationFrameId = window.requestAnimationFrame(() => {
+        setParticipants(parsedParticipants);
+      });
+
+      return () => {
+        window.cancelAnimationFrame(animationFrameId);
+      };
+    } catch {
+      const animationFrameId = window.requestAnimationFrame(() => {
+        pushToast({
+          tone: "error",
+          title: "Kunne ikke lese lokal paamelding",
+          description:
+            "Lokal lagring i nettleseren feilet. Prov aa laste siden pa nytt.",
+        });
+      });
+
+      return () => {
+        window.cancelAnimationFrame(animationFrameId);
+      };
+    }
+  }, []);
 
   useEffect(() => {
     if (!hasFirebaseConfig) {
@@ -188,44 +725,6 @@ export function FestivalApp() {
   }, []);
 
   useEffect(() => {
-    if (!hasFirebaseConfig) {
-      return;
-    }
-
-    const galleryRef = getGalleryCollection();
-
-    if (!galleryRef) {
-      return;
-    }
-
-    const unsubscribe = onSnapshot(
-      query(galleryRef, orderBy("createdAtMs", "desc")),
-      (snapshot) => {
-        startTransition(() => {
-          setGalleryItems(
-            snapshot.docs
-              .map((documentSnapshot) =>
-                toGalleryItem(documentSnapshot.id, documentSnapshot.data()),
-              )
-              .filter((item) => item.url.length > 0),
-          );
-          setGalleryState("ready");
-        });
-      },
-      () => {
-        setGalleryState("error");
-        pushToast({
-          tone: "error",
-          title: "Kunne ikke hente galleriet",
-          description: "Sjekk Firestore- og Storage-oppsettet i Firebase.",
-        });
-      },
-    );
-
-    return unsubscribe;
-  }, []);
-
-  useEffect(() => {
     if (toasts.length === 0) {
       return;
     }
@@ -237,428 +736,239 @@ export function FestivalApp() {
     return () => window.clearTimeout(timeoutId);
   }, [toasts]);
 
-  async function handleSignup(names: string[]) {
+  async function submitSignupEntries(entries: SignupEntry[]) {
+    const normalizedEntries = entries
+      .map((entry) => ({
+        name: entry.name.trim(),
+        companionCount: Math.max(0, Math.floor(entry.companionCount)),
+      }))
+      .filter((entry) => entry.name.length > 0);
+
+    if (normalizedEntries.length === 0) {
+      throw new Error("Legg inn minst ett navn for aa sende paameldingen.");
+    }
+
+    const submittedAt = Date.now();
+    const localParticipants = normalizedEntries.map((entry, index) => ({
+      id: crypto.randomUUID(),
+      name: entry.name,
+      companionCount: entry.companionCount,
+      createdAtMs: submittedAt + index,
+    }));
+
+    if (!hasFirebaseConfig || !db) {
+      const updatedParticipants = [...localParticipants, ...participants].sort(
+        (left, right) => right.createdAtMs - left.createdAtMs,
+      );
+
+      startTransition(() => {
+        setParticipants(updatedParticipants);
+        setParticipantsState("ready");
+      });
+
+      try {
+        window.localStorage.setItem(
+          LOCAL_PARTICIPANTS_STORAGE_KEY,
+          JSON.stringify(updatedParticipants),
+        );
+      } catch {
+        pushToast({
+          tone: "error",
+          title: "Kunne ikke lagre lokalt",
+          description: "Paameldingen vises naa, men ble ikke lagret i nettleseren.",
+        });
+      }
+
+      const totalAdded = normalizedEntries.reduce(
+        (sum, entry) => sum + entry.companionCount + 1,
+        0,
+      );
+
+      pushToast({
+        tone: "success",
+        title: "Paameldingen er registrert",
+        description: `${totalAdded} ${
+          totalAdded === 1 ? "person er" : "personer er"
+        } lagt til lokalt i festivaloversikten.`,
+      });
+
+      return;
+    }
+
     const participantsRef = getParticipantsCollection();
 
-    if (!db || !participantsRef) {
-      throw new Error("Firebase er ikke konfigurert enda.");
+    if (!participantsRef) {
+      throw new Error("Kunne ikke finne deltakerlisten i Firebase.");
     }
 
     const batch = writeBatch(db);
-    const submittedAt = Date.now();
+    const submittedParticipants = normalizedEntries.map((entry, index) => {
+      const participantRef = doc(participantsRef);
 
-    names.forEach((name, index) => {
-      batch.set(doc(participantsRef), {
-        name,
+      return {
+        id: participantRef.id,
+        ref: participantRef,
+        name: entry.name,
+        companionCount: entry.companionCount,
         createdAtMs: submittedAt + index,
+      };
+    });
+
+    submittedParticipants.forEach((participant) => {
+      batch.set(participant.ref, {
+        name: participant.name,
+        companionCount: participant.companionCount,
+        createdAtMs: participant.createdAtMs,
       });
     });
 
     await batch.commit();
 
-    pushToast({
-      tone: "success",
-      title: "Paameldingen er registrert",
-      description: `${names.length} ${
-        names.length === 1 ? "deltaker er" : "deltakere er"
-      } lagt til i festivaloversikten.`,
+    startTransition(() => {
+      setParticipants((current) => {
+        const submittedIds = new Set(
+          submittedParticipants.map((participant) => participant.id),
+        );
+        const optimisticParticipants = submittedParticipants
+          .map((participant) => ({
+            id: participant.id,
+            name: participant.name,
+            companionCount: participant.companionCount,
+            createdAtMs: participant.createdAtMs,
+          }))
+          .sort((left, right) => right.createdAtMs - left.createdAtMs);
+
+        return [
+          ...optimisticParticipants,
+          ...current.filter((participant) => !submittedIds.has(participant.id)),
+        ];
+      });
+      setParticipantsState("ready");
     });
-  }
 
-  async function handleGalleryUpload(files: File[]) {
-    const galleryRef = getGalleryCollection();
-    const festivalStorage = storage;
-
-    if (!galleryRef || !festivalStorage) {
-      throw new Error("Firebase Storage er ikke konfigurert enda.");
-    }
-
-    await Promise.all(
-      files.map(async (file, index) => {
-        const timestamp = Date.now() + index;
-        const fileExtension = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
-        const sanitizedName = slugifyFileName(file.name.replace(/\.[^.]+$/, ""));
-        const storagePath = `gallery/${timestamp}-${crypto.randomUUID()}-${sanitizedName}.${fileExtension}`;
-
-        const storageRef = ref(festivalStorage, storagePath);
-        await uploadBytes(storageRef, file, {
-          contentType: file.type,
-        });
-
-        const url = await getDownloadURL(storageRef);
-
-        await addDoc(galleryRef, {
-          name: file.name,
-          url,
-          storagePath,
-          createdAtMs: timestamp,
-        });
-      }),
+    const totalAdded = normalizedEntries.reduce(
+      (sum, entry) => sum + entry.companionCount + 1,
+      0,
     );
 
     pushToast({
       tone: "success",
-      title: "Bilder lastet opp",
-      description: `${files.length} ${files.length === 1 ? "bilde er" : "bilder er"} lagt til i galleriet.`,
+      title: "Paameldingen er registrert",
+      description: `${totalAdded} ${
+        totalAdded === 1 ? "person er" : "personer er"
+      } lagt til i festivaloversikten.`,
     });
   }
 
+  async function handleQuickSignup(entry: SignupEntry) {
+    await submitSignupEntries([entry]);
+  }
+
   return (
-    <div className="relative overflow-hidden pb-16">
+    <div className="relative overflow-hidden">
       <div className="hero-glow absolute left-[-10rem] top-[-4rem] size-[20rem] rounded-full bg-[#ffe5b4]" />
       <div className="hero-glow absolute right-[-7rem] top-40 size-[22rem] rounded-full bg-[#8fd3ff]" />
       <div className="hero-glow absolute bottom-10 left-1/3 size-[18rem] rounded-full bg-[#b8f2d9]" />
 
-      <div className="mx-auto flex min-h-screen max-w-7xl flex-col px-4 pt-4 sm:px-6 lg:px-8">
-        <header className="card-surface sticky top-4 z-30 mb-8 flex flex-col gap-4 rounded-[1.75rem] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#0f766e]">
-              Sommerfestival
-            </p>
-            <p className="font-display text-2xl text-slate-900">
-              Fister-Festivalen
-            </p>
-          </div>
-
-          <nav className="flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-700">
-            <a
-              href="#program"
-              className="rounded-full px-4 py-2 transition hover:bg-white/70"
-            >
-              Festivalinfo
-            </a>
-            <a
-              href="#signup"
-              className="rounded-full px-4 py-2 transition hover:bg-white/70"
-            >
-              Paamelding
-            </a>
-            <a
-              href="#gallery"
-              className="rounded-full px-4 py-2 transition hover:bg-white/70"
-            >
-              Galleri
-            </a>
-          </nav>
-        </header>
-
-        <main className="flex flex-1 flex-col gap-6">
-          <section className="section-anchor">
-            <div className="group relative min-h-[16rem] overflow-hidden rounded-[2rem] sm:min-h-[22rem] lg:min-h-[30rem]">
-              <Image
-                alt="Stort festivalbilde fra Fister-Festivalen ved vannet."
-                className="object-cover transition duration-700 group-hover:scale-105"
-                fill
-                priority
-                sizes="100vw"
-                src="/festival/hero-feature.jpg"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-slate-950/10 to-transparent" />
-            </div>
-          </section>
-
-          <section className="section-anchor grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-            <div className="card-surface animate-fade-up overflow-hidden rounded-[2rem] p-6 sm:p-8 lg:p-10">
-              <div className="inline-flex items-center gap-2 rounded-full bg-[#0f766e]/10 px-4 py-2 text-sm font-semibold text-[#0f766e]">
-                <Sparkles className="size-4" />
-                Klar for sommerdag ved sjokanten
-              </div>
-
-              <h1 className="mt-6 max-w-3xl font-display text-5xl leading-none text-slate-950 sm:text-6xl lg:text-7xl">
-                Fister-Festivalen
-              </h1>
-
-              <p className="text-balance mt-5 max-w-2xl text-lg leading-8 text-slate-700 sm:text-xl">
-                En lett, leken og sosial festivaldag med bading, konkurranser,
-                mat og drikke. Nettsiden er bygget for rask paamelding, live
-                deltakeroversikt, vaerstatus og sommerbilder fra dagen.
-              </p>
-
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <a
-                  href="#signup"
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
-                >
-                  Meld deg paa
-                  <ArrowRight className="size-4" />
-                </a>
-                <a
-                  href="#gallery"
-                  className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white/70 px-6 py-3 text-sm font-semibold text-slate-800 transition hover:border-white hover:bg-white"
-                >
-                  Se bildegalleriet
-                  <Camera className="size-4" />
-                </a>
-              </div>
-
-              <div className="mt-10 grid gap-4 lg:grid-cols-[1.28fr_0.72fr]">
-                <div className="group relative min-h-[18rem] overflow-hidden rounded-[1.85rem]">
-                  <Image
-                    alt={festivalPhotos[0].alt}
-                    className="object-cover transition duration-700 group-hover:scale-105"
-                    fill
-                    priority
-                    sizes="(max-width: 1024px) 100vw, 45vw"
-                    src={festivalPhotos[0].src}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-950/10 to-transparent" />
-                  <div className="absolute inset-x-0 bottom-0 p-6 text-white">
-                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/70">
-                      Fra Albumet
-                    </p>
-                    <p className="mt-2 max-w-md text-lg font-semibold sm:text-xl">
-                      Ekte bilder fra Fister-Festivalen gir forsiden riktig
-                      sommerpuls.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
-                  {festivalPhotos.slice(1, 3).map((photo) => (
-                    <div
-                      key={photo.src}
-                      className="group relative min-h-[10rem] overflow-hidden rounded-[1.6rem]"
-                    >
-                      <Image
-                        alt={photo.alt}
-                        className="object-cover transition duration-700 group-hover:scale-105"
-                        fill
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 20vw"
-                        src={photo.src}
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/45 to-transparent" />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mt-10 grid gap-4 md:grid-cols-3">
-                {highlights.map((highlight) => {
-                  const Icon = highlight.icon;
-
-                  return (
-                    <div
-                      key={highlight.title}
-                      className="rounded-[1.5rem] bg-white/75 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.08)] transition hover:-translate-y-1"
-                    >
-                      <Icon className="size-5 text-[#0f766e]" />
-                      <h2 className="mt-4 text-lg font-semibold text-slate-900">
-                        {highlight.title}
-                      </h2>
-                      <p className="mt-2 text-sm leading-6 text-slate-600">
-                        {highlight.description}
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="grid gap-4">
-              <div className="card-surface animate-fade-up-delay rounded-[2rem] p-6">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-semibold uppercase tracking-[0.24em] text-slate-500">
-                      Live festivalpuls
-                    </p>
-                    <h2 className="mt-2 text-2xl font-semibold text-slate-950">
-                      Alt du trenger foran deg
-                    </h2>
-                  </div>
-                  <div className="rounded-full bg-[#ff7a59]/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#ff7a59]">
-                    Live
-                  </div>
-                </div>
-
-                <div className="mt-6 rounded-[1.5rem] bg-slate-950 px-5 py-6 text-white shadow-[0_24px_50px_rgba(15,23,42,0.25)]">
-                  <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/60">
-                    Paameldte naa
-                  </p>
-                  <div className="mt-3 flex items-end justify-between gap-4">
-                    <div className="text-5xl font-bold">
-                      {participants.length}
-                    </div>
-                    <UsersRound className="size-10 text-[#f7d794]" />
-                  </div>
-                  <p className="mt-4 text-sm text-white/70">
-                    {hasFirebaseConfig
-                      ? "Tallet oppdateres automatisk fra Firestore."
-                      : "Legg inn Firebase-oppsett for aa aktivere live paamelding."}
-                  </p>
-                </div>
-
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  {pulseCards.map((card) => {
-                    const Icon = card.icon;
-
-                    return (
-                      <div
-                        key={card.label}
-                        className="rounded-[1.35rem] bg-white/80 px-4 py-5"
-                      >
-                        <Icon className="size-4 text-[#0f766e]" />
-                        <p className="mt-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                          {card.label}
-                        </p>
-                        <p className="mt-2 text-sm leading-6 text-slate-700">
-                          {card.value}
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <WeatherCard />
-              <CountdownCard festivalDate={FESTIVAL_DATE} />
-            </div>
-          </section>
-
-          <section className="section-anchor card-surface rounded-[2rem] p-6 sm:p-8 lg:p-10">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#0f766e]">
-                  Fra albumet
-                </p>
-                <h2 className="mt-4 font-display text-4xl text-slate-950 sm:text-5xl">
-                  Festivalglimt med ekte bryggestemning
-                </h2>
-              </div>
-              <p className="max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">
-                Jeg har lagt inn utvalgte bilder direkte pa forsiden, slik at
-                siden ser ut som Fister-Festivalen fra forste skjermbilde og
-                ikke bare som en generisk festivalmal.
-              </p>
-            </div>
-
-            <div className="mt-8 grid auto-rows-[14rem] gap-4 md:grid-cols-2 xl:grid-cols-4">
-              {festivalPhotos.map((photo, index) => (
-                <article
-                  key={photo.src}
-                  className={`group relative overflow-hidden rounded-[1.75rem] ${
-                    index === 0
-                      ? "md:col-span-2 xl:row-span-2 min-h-[20rem]"
-                      : index === 3 || index === 6
-                        ? "md:col-span-2"
-                        : ""
-                  }`}
-                >
-                  <Image
-                    alt={photo.alt}
-                    className="object-cover transition duration-700 group-hover:scale-105"
-                    fill
-                    sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 25vw"
-                    src={photo.src}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/35 via-slate-950/5 to-transparent" />
-                </article>
-              ))}
-            </div>
-          </section>
-
-          <section
-            id="program"
-            className="section-anchor card-surface rounded-[2rem] p-6 sm:p-8 lg:p-10"
-          >
-            <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#0f766e]">
-                  Festivalinfo
-                </p>
-                <h2 className="mt-4 max-w-lg font-display text-4xl leading-tight text-slate-950 sm:text-5xl">
-                  Sommerlig, lett aa bruke og bygget for raske oppdateringer
-                </h2>
-                <p className="mt-5 max-w-xl text-base leading-7 text-slate-600 sm:text-lg">
-                  Løsningen er mobilvennlig og laget for enkel drift: paamelding
-                  i sanntid, opplasting av festivalbilder og vaerdata for Fister
-                  pa samme side. Standarddatoen er satt til{" "}
-                  {formatFestivalDate(FESTIVAL_DATE)}.
-                </p>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-3">
-                {[
-                  {
-                    title: "Live deltakerliste",
-                    text: "Firestore driver liste og totalantall fortlopende uten manuell refresh.",
-                  },
-                  {
-                    title: "Vaer rett pa forsiden",
-                    text: "OpenWeather-data hentes via en server-route sa noekkelen ikke eksponeres i klienten.",
-                  },
-                  {
-                    title: "Instagram-style galleri",
-                    text: "Bilder lastes til Firebase Storage og dukker opp i et responsivt grid saa snart de er registrert.",
-                  },
-                ].map((item) => (
-                  <div
-                    key={item.title}
-                    className="rounded-[1.5rem] bg-gradient-to-br from-white/95 to-white/70 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.08)]"
-                  >
-                    <h3 className="text-lg font-semibold text-slate-900">
-                      {item.title}
-                    </h3>
-                    <p className="mt-3 text-sm leading-6 text-slate-600">
-                      {item.text}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          <section
-            id="signup"
-            className="section-anchor grid gap-6 lg:grid-cols-[0.88fr_1.12fr]"
-          >
-            <div className="card-surface rounded-[2rem] p-6 sm:p-8">
-              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#0f766e]">
-                Paamelding
-              </p>
-              <h2 className="mt-4 font-display text-4xl text-slate-950 sm:text-5xl">
-                Meld paa hele gjengen
-              </h2>
-              <p className="mt-4 max-w-xl text-base leading-7 text-slate-600 sm:text-lg">
-                Legg inn ett eller flere navn, send skjemaet og se
-                deltakerlisten oppdatere seg automatisk. Skjemaet er laget for
-                raske gruppepaameldinger fra mobil.
-              </p>
-
-              <div className="mt-6 rounded-[1.4rem] border border-dashed border-[#0f766e]/25 bg-[#0f766e]/5 px-4 py-4 text-sm leading-6 text-slate-700">
-                {hasFirebaseConfig
-                  ? "Firebase er aktiv. Nye deltakere skrives direkte til Firestore."
-                  : "Firebase mangler miljoverdier. Bruk .env.example og README for aa aktivere paamelding og live data."}
-              </div>
-
-              <div className="mt-8">
-                <SignupForm
-                  disabled={!hasFirebaseConfig}
-                  onSubmit={handleSignup}
+      <div className="mx-auto flex min-h-screen max-w-7xl flex-col px-4 sm:px-6 lg:px-8">
+        <main className="flex flex-1 flex-col">
+          <div className="flex flex-col gap-0">
+            <section className="section-anchor">
+              <div className="group relative left-1/2 w-screen -translate-x-1/2 min-h-[24rem] overflow-hidden sm:min-h-[34rem] lg:min-h-[46rem] xl:min-h-[52rem]">
+                <Image
+                  alt="Stort festivalbilde fra Fister-Festivalen ved vannet."
+                  className="object-cover object-[center_56%] transition duration-700 group-hover:scale-105"
+                  fill
+                  priority
+                  sizes="100vw"
+                  src="/festival/hero-feature.jpg"
                 />
+                <div className="absolute inset-0 bg-gradient-to-b from-slate-950/18 via-transparent to-transparent" />
+                <div className="absolute inset-x-0 top-[16%] z-10 -translate-y-1/2">
+                  <div className="mx-auto flex w-full max-w-7xl justify-center px-4 text-center sm:px-6 lg:px-8">
+                    <h1 className="font-display text-5xl leading-none text-[#0d8a58] drop-shadow-[0_8px_24px_rgba(255,255,255,0.3)] sm:text-6xl lg:text-7xl xl:text-8xl">
+                      Fister-Festivalen 2026
+                    </h1>
+                  </div>
+                </div>
               </div>
-            </div>
+            </section>
 
-            <ParticipantList
+            <FestivalInfoBand />
+
+            <section className="section-anchor">
+              <div className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden pt-0 pb-0">
+                <div className="space-y-0">
+                  <div className="marquee-track">
+                    {[0, 1].map((groupIndex) => (
+                      <div
+                        key={groupIndex}
+                        aria-hidden={groupIndex === 1}
+                        className="marquee-group"
+                      >
+                        {marqueePhotos.map((photo) => (
+                          <article
+                            key={`${groupIndex}-${photo.src}`}
+                            className="relative h-56 w-[22rem] shrink-0 overflow-hidden sm:h-72 sm:w-[28rem]"
+                          >
+                            <Image
+                              alt={photo.alt}
+                              className="object-cover"
+                              fill
+                              sizes="(max-width: 640px) 22rem, 28rem"
+                              src={photo.src}
+                            />
+                          </article>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="marquee-track marquee-track-reverse">
+                    {[0, 1].map((groupIndex) => (
+                      <div
+                        key={`reverse-${groupIndex}`}
+                        aria-hidden={groupIndex === 1}
+                        className="marquee-group"
+                      >
+                        {marqueeReversePhotos.map((photo) => (
+                          <article
+                            key={`reverse-${groupIndex}-${photo.src}`}
+                            className="relative h-56 w-[22rem] shrink-0 overflow-hidden sm:h-72 sm:w-[28rem]"
+                          >
+                            <Image
+                              alt={photo.alt}
+                              className="object-cover"
+                              fill
+                              sizes="(max-width: 640px) 22rem, 28rem"
+                              style={
+                                photo.objectPosition
+                                  ? ({
+                                      objectPosition: photo.objectPosition,
+                                    } satisfies CSSProperties)
+                                  : undefined
+                              }
+                              src={photo.src}
+                            />
+                          </article>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <FestivalInfoBand
+              tone="green"
+              onQuickSignup={handleQuickSignup}
+              signupDisabled={false}
               participants={participants}
-              state={participantsState}
+              participantState={participantsState}
+              totalParticipants={totalParticipants}
             />
-          </section>
-
-          <section id="gallery" className="section-anchor">
-            <GallerySection
-              items={galleryItems}
-              state={galleryState}
-              disabled={!hasFirebaseConfig}
-              onUpload={handleGalleryUpload}
-            />
-          </section>
+          </div>
         </main>
-
-        <footer className="mt-8 rounded-[1.75rem] border border-white/60 bg-white/60 px-5 py-5 text-sm leading-6 text-slate-600 backdrop-blur">
-          Bygget med Next.js, Tailwind og Firebase for enkel deploy til Vercel
-          eller Netlify. Oppsettet er gjort plug-and-play med placeholders i{" "}
-          <code>.env.example</code> og egne Firebase-regler i prosjektet.
-        </footer>
       </div>
 
       <ToastRegion toasts={toasts} />

@@ -1,3 +1,5 @@
+import type { Participant } from "@/lib/types";
+
 export function formatFestivalDate(dateString: string) {
   return new Intl.DateTimeFormat("nb-NO", {
     day: "numeric",
@@ -41,4 +43,25 @@ export function toTitleCase(value: string) {
   return value.length > 0
     ? `${value.charAt(0).toUpperCase()}${value.slice(1)}`
     : value;
+}
+
+export function getParticipantPartySize(
+  participant: Pick<Participant, "companionCount">,
+) {
+  const companionCount =
+    typeof participant.companionCount === "number" && participant.companionCount > 0
+      ? participant.companionCount
+      : 0;
+
+  return 1 + companionCount;
+}
+
+export function formatParticipantLabel(
+  participant: Pick<Participant, "name" | "companionCount">,
+) {
+  const partySize = getParticipantPartySize(participant);
+
+  return partySize > 1
+    ? `${participant.name} + ${partySize - 1}`
+    : participant.name;
 }
