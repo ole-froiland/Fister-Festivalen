@@ -169,18 +169,18 @@ function CompactSignupCta({
   }
 
   return (
-    <div className="mx-auto mt-10 w-full max-w-[58rem] sm:mt-12">
+    <div className="mx-auto mt-8 w-full max-w-[28rem] sm:mt-12 sm:max-w-[58rem]">
       <div
         ref={containerRef}
-        className={`mx-auto origin-center overflow-hidden rounded-full border border-[#d9c5a5] bg-[#eddabd] will-change-[width,max-width,transform] transition-[width,max-width,box-shadow,transform] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+        className={`mx-auto origin-center overflow-hidden border border-[#d9c5a5] bg-[#eddabd] will-change-[width,max-width,transform] transition-[width,max-width,border-radius,box-shadow,transform] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${
           isExpanded
-            ? "w-full max-w-[58rem] shadow-[0_18px_40px_rgba(15,23,42,0.08)]"
-            : "w-[20rem] max-w-full shadow-[0_10px_24px_rgba(15,23,42,0.08)] hover:-translate-y-0.5 hover:shadow-[0_16px_32px_rgba(15,23,42,0.12)]"
+            ? "w-full max-w-[28rem] rounded-[1.8rem] shadow-[0_18px_40px_rgba(15,23,42,0.08)] sm:max-w-[58rem] sm:rounded-full"
+            : "w-full max-w-[22rem] rounded-full shadow-[0_10px_24px_rgba(15,23,42,0.08)] hover:-translate-y-0.5 hover:shadow-[0_16px_32px_rgba(15,23,42,0.12)]"
         }`}
       >
         <div
           className={`relative transition-[height] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-            isExpanded ? "h-[11.5rem] sm:h-20" : "h-11"
+            isExpanded ? "h-[12.75rem] sm:h-20" : "h-12"
           }`}
         >
           <div
@@ -192,7 +192,7 @@ function CompactSignupCta({
             }`}
           >
             <button
-              className="flex h-full w-full items-center justify-center gap-2 px-5 text-[0.85rem] font-semibold text-slate-900 sm:text-[0.9rem]"
+              className="flex h-full w-full items-center justify-center gap-2 px-5 text-[0.92rem] font-semibold text-slate-900 sm:text-[0.9rem]"
               onClick={openSignup}
               type="button"
             >
@@ -202,7 +202,7 @@ function CompactSignupCta({
           </div>
 
           <form
-            className={`absolute inset-0 flex flex-wrap items-center gap-2 px-3 py-3 transition-[opacity,transform,filter] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] sm:flex-nowrap sm:gap-3 sm:px-4 ${
+            className={`absolute inset-0 flex flex-wrap items-center gap-2.5 px-3 py-3.5 transition-[opacity,transform,filter] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] sm:flex-nowrap sm:gap-3 sm:px-4 sm:py-3 ${
               isExpanded
                 ? "translate-y-0 opacity-100 blur-0 delay-150"
                 : "pointer-events-none translate-y-2 scale-[0.992] opacity-0 blur-[3px]"
@@ -210,7 +210,7 @@ function CompactSignupCta({
             onSubmit={handleSubmit}
           >
             <input
-              className="order-1 h-12 min-w-0 basis-full bg-transparent px-3 text-[0.9rem] font-medium text-slate-950 outline-none placeholder:font-medium placeholder:text-slate-950 placeholder:opacity-100 disabled:cursor-default sm:h-14 sm:flex-1 sm:basis-auto sm:px-5 sm:text-[0.92rem] sm:max-w-[21rem] lg:max-w-[24rem]"
+              className="order-1 h-12 min-w-0 basis-full bg-transparent px-3 text-[0.95rem] font-medium text-slate-950 outline-none placeholder:font-medium placeholder:text-slate-950 placeholder:opacity-100 disabled:cursor-default sm:h-14 sm:flex-1 sm:basis-auto sm:px-5 sm:text-[0.92rem] sm:max-w-[21rem] lg:max-w-[24rem]"
               disabled={!isExpanded || isSubmitting}
               maxLength={80}
               onChange={(event) => {
@@ -219,22 +219,22 @@ function CompactSignupCta({
                   setError(null);
                 }
               }}
-              placeholder="Skriv navnet"
+              placeholder="Skriv navnet ditt"
               ref={inputRef}
               value={name}
             />
 
             <span
               aria-hidden="true"
-              className="order-2 shrink-0 pl-1 text-lg font-semibold text-slate-700 sm:translate-x-8"
+              className="order-2 hidden shrink-0 pl-1 text-lg font-semibold text-slate-700 sm:block sm:translate-x-8"
             >
               +
             </span>
 
-            <div className="order-3 ml-1 flex h-12 shrink-0 items-center gap-2 px-0 sm:ml-16 sm:h-14 lg:ml-20">
-              <div className="min-w-[4.5rem] text-center">
+            <div className="order-3 flex h-12 min-w-[8.5rem] shrink-0 items-center justify-between rounded-full bg-white/40 px-3 sm:ml-16 sm:h-14 sm:rounded-none sm:bg-transparent sm:px-0 lg:ml-20">
+              <div className="min-w-0 text-left sm:min-w-[4.5rem] sm:text-center">
                 <p className="text-[0.56rem] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                  Følge
+                  Ekstra
                 </p>
                 <p className="text-[1.15rem] font-semibold text-slate-900">
                   {companionCount}
@@ -265,7 +265,7 @@ function CompactSignupCta({
             </div>
 
             <button
-              className="order-4 inline-flex h-11 w-full items-center justify-center rounded-full bg-[#0d8a58] px-7 text-[0.85rem] font-semibold text-white transition hover:bg-[#0b744b] disabled:cursor-not-allowed disabled:opacity-50 sm:ml-auto sm:h-14 sm:w-auto sm:text-[0.9rem]"
+              className="order-4 inline-flex h-12 w-full items-center justify-center rounded-full bg-[#0d8a58] px-7 text-[0.88rem] font-semibold text-white transition hover:bg-[#0b744b] disabled:cursor-not-allowed disabled:opacity-50 sm:ml-auto sm:h-14 sm:w-auto sm:text-[0.9rem]"
               disabled={!isExpanded || disabled || isSubmitting}
               type="submit"
             >
@@ -327,44 +327,52 @@ function FestivalInfoBand({
     return (
       <section id="festivalinfo" className="section-anchor">
         <div
-          className={`relative left-1/2 flex w-screen -translate-x-1/2 px-6 py-8 sm:px-10 sm:py-10 lg:py-12 ${sectionClasses}`}
+          className={`relative left-1/2 flex w-screen -translate-x-1/2 px-4 py-8 sm:px-10 sm:py-10 lg:py-12 ${sectionClasses}`}
         >
           <div className="mx-auto w-full max-w-5xl text-center">
-            <p className="-mt-2 mb-5 font-display text-3xl font-semibold uppercase tracking-[0.16em] text-[#0d8a58] sm:-mt-3 sm:mb-7 sm:text-4xl">
+            <p className="mb-4 font-display text-[2.2rem] font-semibold uppercase tracking-[0.14em] text-[#0d8a58] sm:-mt-3 sm:mb-7 sm:text-4xl">
               Info
             </p>
-            <p className="mx-auto max-w-4xl text-xl leading-9 text-slate-800 sm:text-2xl">
-              I tradisjon tro inviterer vi til Fister-festival ogs&aring; i
-              &aring;r!
-            </p>
+            <div className="mx-auto max-w-[21rem] space-y-4 text-[1.05rem] leading-8 text-slate-800 sm:max-w-4xl sm:space-y-4 sm:text-2xl sm:leading-9">
+              <p>
+                I tradisjon tro inviterer vi til Fister-festival ogs&aring; i
+                &aring;r!
+              </p>
 
-            <p className="mx-auto mt-4 max-w-4xl text-xl leading-9 text-slate-800 sm:text-2xl">
-              Det blir servert god mat og drikke, og dagen fylles med
-              aktiviteter som bading, bordtennis, fotball og ulike
-              konkurranser.
-            </p>
+              <p>
+                Det blir servert god mat og drikke, og dagen fylles med
+                aktiviteter som bading, bordtennis, fotball og ulike
+                konkurranser.
+              </p>
 
-            <p className="mx-auto mt-4 max-w-4xl text-xl leading-9 text-slate-800 sm:text-2xl">
-              Det eneste dere trenger &aring; ta med er badekl&aelig;r,
-              h&aring;ndkle og godt hum&oslash;r!
-            </p>
+              <p>
+                Det eneste dere trenger &aring; ta med er badekl&aelig;r,
+                h&aring;ndkle og godt hum&oslash;r!
+              </p>
+            </div>
 
-            <div className="mx-auto mt-8 grid max-w-4xl gap-4 md:grid-cols-3">
+            <div className="mx-auto mt-8 grid max-w-[22rem] gap-3 sm:max-w-4xl sm:gap-4 md:grid-cols-3">
               {festivalDetails.map((detail) => {
                 const Icon = detail.icon;
 
                 return (
                   <div
                     key={detail.label}
-                    className="rounded-[1.5rem] border border-slate-900/10 bg-white/15 px-5 py-5 text-center shadow-[0_12px_28px_rgba(15,23,42,0.05)]"
+                    className="rounded-[1.4rem] border border-slate-900/10 bg-white/25 px-4 py-4 shadow-[0_12px_28px_rgba(15,23,42,0.05)] backdrop-blur-[8px] sm:rounded-[1.5rem] sm:px-5 sm:py-5"
                   >
-                    <Icon className="mx-auto size-5 text-[#0d8a58]" />
-                    <p className="mt-3 text-sm font-semibold uppercase tracking-[0.22em] text-slate-600">
-                      {detail.label}
-                    </p>
-                    <p className="mt-2 text-lg font-semibold text-slate-900 sm:text-xl">
-                      {detail.value}
-                    </p>
+                    <div className="flex items-center gap-4 text-left md:block md:text-center">
+                      <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white/75 md:mx-auto">
+                        <Icon className="size-5 text-[#0d8a58]" />
+                      </div>
+                      <div className="min-w-0 md:mt-3">
+                        <p className="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-slate-600">
+                          {detail.label}
+                        </p>
+                        <p className="mt-1 text-[1.15rem] font-semibold text-slate-900 sm:text-xl">
+                          {detail.value}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 );
               })}
@@ -381,17 +389,25 @@ function FestivalInfoBand({
 
   return (
     <section id="signup" className="section-anchor">
-      <div className="relative left-1/2 flex w-screen -translate-x-1/2 items-start justify-center px-6 py-8 sm:min-h-[22rem] sm:py-10 lg:min-h-[25.5rem] lg:py-12">
-        <div aria-hidden="true" className="absolute inset-0">
+      <div className="relative left-1/2 flex w-screen -translate-x-1/2 items-start justify-center overflow-hidden px-4 py-8 sm:px-6 sm:py-10 lg:min-h-[25.5rem] lg:px-8 lg:py-12">
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-[linear-gradient(180deg,#d8e9cf_0%,#f3e1c3_100%)] lg:hidden"
+        />
+        <div aria-hidden="true" className="absolute inset-0 hidden lg:block">
           <div className="absolute inset-y-0 left-0 w-1/2 bg-[#b9d7ae]" />
           <div className="absolute inset-y-0 right-0 w-1/2 bg-[#eddabd]" />
         </div>
 
-        <div className="relative mx-auto w-full max-w-7xl lg:grid lg:grid-cols-2">
-          <div className="mx-auto -translate-y-3 flex w-full max-w-4xl flex-col items-center text-center lg:col-start-1 lg:max-w-[46rem] lg:px-8 lg:-translate-y-4">
-            <h2 className="font-display text-5xl leading-none text-slate-950 sm:text-6xl lg:text-7xl">
+        <div className="relative mx-auto grid w-full max-w-7xl gap-5 lg:grid-cols-2 lg:gap-0">
+          <div className="mx-auto flex w-full max-w-[26rem] flex-col items-center rounded-[2rem] border border-white/45 bg-[#f7eddc]/72 px-5 py-6 text-center shadow-[0_22px_60px_rgba(15,23,42,0.12)] backdrop-blur-[12px] sm:max-w-4xl sm:px-8 sm:py-8 lg:col-start-1 lg:max-w-[46rem] lg:-translate-y-4 lg:rounded-none lg:border-0 lg:bg-transparent lg:px-8 lg:py-0 lg:shadow-none lg:backdrop-blur-0">
+            <h2 className="font-display text-4xl leading-none text-slate-950 sm:text-6xl lg:text-7xl">
               P&aring;melding
             </h2>
+            <p className="mt-3 max-w-[19rem] text-sm leading-6 text-slate-700 sm:max-w-xl sm:text-base">
+              Meld inn deg selv og gjengen i ett felt. Antallet oppdateres
+              fortl&oslash;pende under.
+            </p>
 
             <CompactSignupCta
               disabled={signupDisabled}
@@ -401,21 +417,24 @@ function FestivalInfoBand({
             <div className="mt-5 flex w-full justify-center">
               <div
                 className={`w-full overflow-hidden rounded-[1.7rem] border border-[#d9c5a5] bg-[#eddabd] shadow-[0_18px_36px_rgba(15,23,42,0.1)] transition-[max-width] duration-300 ease-out ${
-                  isParticipantListOpen ? "max-w-2xl" : "max-w-[20rem]"
+                  isParticipantListOpen
+                    ? "max-w-full sm:max-w-2xl"
+                    : "max-w-full sm:max-w-[22rem]"
                 }`}
               >
                 <button
                   aria-controls="festival-inline-participants"
                   aria-expanded={isParticipantListOpen}
-                  className={`inline-flex h-11 w-full items-center justify-center gap-2 px-6 text-base font-semibold text-slate-900 transition-[background-color,border-color] duration-300 ease-out hover:bg-[#e7d0ad] ${
+                  className={`inline-flex h-12 w-full items-center justify-center gap-2 px-4 text-sm font-semibold text-slate-900 transition-[background-color,border-color] duration-300 ease-out hover:bg-[#e7d0ad] sm:px-6 sm:text-base ${
                     isParticipantListOpen ? "border-b border-[#d9c5a5]" : "border-b border-transparent"
                   }`}
                   onClick={() => setIsParticipantListOpen((current) => !current)}
                   type="button"
                 >
                   <UsersRound className="size-5 text-[#0d8a58]" />
-                  Antall deltakere
-                  <span className="text-base font-bold text-slate-950">
+                  <span className="sm:hidden">Deltakere</span>
+                  <span className="hidden sm:inline">Antall deltakere</span>
+                  <span className="rounded-full bg-white/65 px-2.5 py-1 text-sm font-bold text-slate-950">
                     {totalParticipants}
                   </span>
                   <ChevronDown
@@ -441,7 +460,7 @@ function FestivalInfoBand({
                   >
                     <div className="p-4 sm:p-5">
                       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                        Alle påmeldte
+                        Alle p&aring;meldte
                       </p>
 
                       {participantState === "loading" ? (
@@ -482,11 +501,15 @@ function FestivalInfoBand({
             </div>
           </div>
 
-          <div className="relative z-10 mx-auto mt-2 flex w-full max-w-xl items-center justify-center lg:col-start-2 lg:mt-0 lg:-translate-y-12 lg:px-8">
-            <div className="w-full p-6 text-center sm:p-8">
-              <h2 className="font-display text-5xl leading-none text-slate-950 sm:text-6xl lg:text-7xl">
+          <div className="relative z-10 mx-auto flex w-full max-w-[26rem] items-center justify-center rounded-[2rem] border border-white/45 bg-[#fcf5e8]/72 px-5 py-6 text-center shadow-[0_22px_60px_rgba(15,23,42,0.12)] backdrop-blur-[12px] sm:max-w-xl sm:px-8 sm:py-8 lg:col-start-2 lg:mt-0 lg:max-w-xl lg:-translate-y-12 lg:rounded-none lg:border-0 lg:bg-transparent lg:px-8 lg:py-0 lg:shadow-none lg:backdrop-blur-0">
+            <div className="w-full">
+              <h2 className="font-display text-4xl leading-none text-slate-950 sm:text-6xl lg:text-7xl">
                 Bilder
               </h2>
+              <p className="mt-3 text-sm leading-6 text-slate-700 sm:text-base">
+                Del nye minner eller hent hele bildepakken p&aring; mobilen med
+                ett trykk.
+              </p>
 
               <input
                 accept="image/*"
@@ -497,9 +520,9 @@ function FestivalInfoBand({
                 type="file"
               />
 
-              <div className="mt-10 flex flex-col items-center gap-5 sm:mt-12">
+              <div className="mt-8 flex flex-col items-center gap-4 sm:mt-12 sm:gap-5">
                 <button
-                  className="inline-flex h-11 w-[20rem] max-w-full items-center justify-center gap-2 rounded-full bg-[#0d8a58] px-5 text-base font-semibold text-white transition hover:bg-[#0b744b]"
+                  className="inline-flex h-12 w-full max-w-full items-center justify-center gap-2 rounded-full bg-[#0d8a58] px-5 text-base font-semibold text-white transition hover:bg-[#0b744b] sm:w-[20rem]"
                   onClick={openImagePicker}
                   type="button"
                 >
@@ -508,7 +531,7 @@ function FestivalInfoBand({
                 </button>
 
                 <a
-                  className="inline-flex h-11 w-[20rem] max-w-full items-center justify-center gap-2 rounded-full bg-[#0d8a58] px-5 text-base font-semibold !text-white transition hover:bg-[#0b744b] visited:!text-white"
+                  className="inline-flex h-12 w-full max-w-full items-center justify-center gap-2 rounded-full bg-[#0d8a58] px-5 text-base font-semibold !text-white transition hover:bg-[#0b744b] visited:!text-white sm:w-[20rem]"
                   download
                   href={IMAGE_ARCHIVE_PATH}
                 >
@@ -605,6 +628,11 @@ const marqueeReversePhotos: ReadonlyArray<MarqueePhoto> = [
     src: "/festival/marquee-reverse/IMG_9973.jpeg",
     alt: "Bilde fra fjorarets Fister-festival i rullende galleri.",
   },
+];
+
+const mobileGalleryPhotos: ReadonlyArray<MarqueePhoto> = [
+  ...marqueePhotos.slice(0, 3),
+  ...marqueeReversePhotos.slice(0, 3),
 ];
 
 function toParticipant(docId: string, data: Record<string, unknown>): Participant {
@@ -874,7 +902,7 @@ export function FestivalApp() {
         <main className="flex flex-1 flex-col">
           <div className="flex flex-col gap-0">
             <section className="section-anchor">
-              <div className="group relative left-1/2 w-screen -translate-x-1/2 min-h-[24rem] overflow-hidden sm:min-h-[34rem] lg:min-h-[46rem] xl:min-h-[52rem]">
+              <div className="group relative left-1/2 w-screen -translate-x-1/2 min-h-[27rem] overflow-hidden sm:min-h-[34rem] lg:min-h-[46rem] xl:min-h-[52rem]">
                 <Image
                   alt="Stort festivalbilde fra Fister-Festivalen ved vannet."
                   className="object-cover object-[center_56%] transition duration-700 group-hover:scale-105"
@@ -883,12 +911,18 @@ export function FestivalApp() {
                   sizes="100vw"
                   src="/festival/hero-feature.jpg"
                 />
-                <div className="absolute inset-0 bg-gradient-to-b from-slate-950/18 via-transparent to-transparent" />
-                <div className="absolute inset-x-0 top-[16%] z-10 -translate-y-1/2">
-                  <div className="mx-auto flex w-full max-w-7xl justify-center px-4 text-center sm:px-6 lg:px-8">
-                    <h1 className="font-display text-5xl leading-none text-[#0d8a58] drop-shadow-[0_8px_24px_rgba(255,255,255,0.3)] sm:text-6xl lg:text-7xl xl:text-8xl">
-                      Fister-Festivalen 2026
-                    </h1>
+                <div className="absolute inset-0 bg-gradient-to-b from-white/18 via-transparent to-slate-950/36" />
+                <div className="absolute inset-x-0 bottom-0 z-10">
+                  <div className="mx-auto w-full max-w-7xl px-4 pb-6 pt-20 sm:px-6 sm:pb-12 lg:px-8 lg:pb-16">
+                    <div className="mx-auto max-w-[22rem] rounded-[1.8rem] border border-white/60 bg-[#fff6e8]/60 px-5 py-5 text-center shadow-[0_18px_50px_rgba(15,23,42,0.12)] backdrop-blur-[12px] sm:max-w-3xl sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:shadow-none sm:backdrop-blur-0">
+                      <p className="text-[0.68rem] font-semibold uppercase tracking-[0.32em] text-slate-700 sm:text-[#f8f1df]">
+                        Sommer ved sj&oslash;kanten
+                      </p>
+                      <h1 className="mt-3 font-display text-[3.45rem] leading-[0.88] tracking-[-0.04em] text-[#0d8a58] drop-shadow-[0_10px_30px_rgba(255,255,255,0.35)] sm:text-6xl lg:text-7xl xl:text-8xl">
+                        <span className="block">Fister-Festivalen</span>
+                        <span className="block">2026</span>
+                      </h1>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -896,7 +930,47 @@ export function FestivalApp() {
 
             <FestivalInfoBand />
 
-            <section className="section-anchor">
+            <section className="section-anchor sm:hidden">
+              <div className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden px-4 py-4">
+                <div className="mx-auto max-w-md">
+                  <div className="no-scrollbar overflow-x-auto">
+                    <div className="flex snap-x snap-mandatory gap-3 px-1">
+                      {mobileGalleryPhotos.map((photo) => (
+                        <article
+                          key={`mobile-${photo.src}`}
+                          className="relative h-[24rem] w-[78vw] max-w-[20rem] shrink-0 snap-center overflow-hidden rounded-[1.7rem] shadow-[0_18px_40px_rgba(15,23,42,0.14)]"
+                        >
+                          <Image
+                            alt={photo.alt}
+                            className="object-cover"
+                            fill
+                            sizes="78vw"
+                            style={
+                              photo.objectPosition
+                                ? ({
+                                    objectPosition: photo.objectPosition,
+                                  } satisfies CSSProperties)
+                                : undefined
+                            }
+                            src={photo.src}
+                          />
+                          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/45 to-transparent px-4 py-4">
+                            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-white/90">
+                              Stemning fra i fjor
+                            </p>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  </div>
+                  <p className="mt-3 text-center text-[0.74rem] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    Swipe for flere bilder
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            <section className="section-anchor hidden sm:block">
               <div className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden pt-0 pb-0">
                 <div className="space-y-0">
                   <div className="marquee-track">
