@@ -1,7 +1,14 @@
 "use client";
 
 import Image from "next/image";
-import { doc, onSnapshot, orderBy, query, writeBatch } from "firebase/firestore";
+import {
+  deleteDoc,
+  doc,
+  onSnapshot,
+  orderBy,
+  query,
+  writeBatch,
+} from "firebase/firestore";
 import {
   ArrowRight,
   CalendarDays,
@@ -11,6 +18,7 @@ import {
   Download,
   LoaderCircle,
   MapPin,
+  Trash2,
   UploadCloud,
   UsersRound,
 } from "lucide-react";
@@ -293,17 +301,21 @@ function CompactSignupCta({
 function FestivalInfoBand({
   tone = "sand",
   onQuickSignup,
+  onDeleteParticipant,
   signupDisabled = false,
   participants = [],
   participantState = "ready",
   totalParticipants = 0,
+  deletingParticipantIds = new Set<string>(),
 }: {
   tone?: "sand" | "green";
   onQuickSignup?: (entry: SignupEntry) => Promise<void>;
+  onDeleteParticipant?: (participant: Participant) => Promise<void>;
   signupDisabled?: boolean;
   participants?: Participant[];
   participantState?: LoadState;
   totalParticipants?: number;
+  deletingParticipantIds?: ReadonlySet<string>;
 }) {
   const isGreen = tone === "green";
   const sectionClasses = isGreen ? "bg-[#b9d7ae]" : "bg-[#eddabd]";
@@ -383,7 +395,7 @@ function FestivalInfoBand({
     );
   }
 
-  if (!onQuickSignup) {
+  if (!onQuickSignup || !onDeleteParticipant) {
     return null;
   }
 
@@ -404,10 +416,6 @@ function FestivalInfoBand({
             <h2 className="font-display text-4xl leading-none text-slate-950 sm:text-6xl lg:text-7xl">
               P&aring;melding
             </h2>
-            <p className="mt-3 max-w-[19rem] text-sm leading-6 text-slate-700 sm:max-w-xl sm:text-base">
-              Meld inn deg selv og gjengen i ett felt. Antallet oppdateres
-              fortl&oslash;pende under.
-            </p>
 
             <CompactSignupCta
               disabled={signupDisabled}
@@ -482,14 +490,29 @@ function FestivalInfoBand({
                           {participants.map((participant, index) => (
                             <li
                               key={participant.id}
-                              className="flex items-center justify-between rounded-[1.2rem] bg-white/70 px-4 py-3 shadow-[0_10px_24px_rgba(15,23,42,0.06)]"
+                              className="flex items-center justify-between gap-3 rounded-[1.2rem] bg-white/70 px-4 py-3 shadow-[0_10px_24px_rgba(15,23,42,0.06)]"
                             >
-                              <span className="text-base font-semibold text-slate-900">
+                              <span className="min-w-0 flex-1 truncate text-base font-semibold text-slate-900">
                                 {formatParticipantLabel(participant)}
                               </span>
-                              <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                                #{participants.length - index}
-                              </span>
+                              <div className="flex shrink-0 items-center gap-2">
+                                <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                                  #{participants.length - index}
+                                </span>
+                                <button
+                                  className="inline-flex h-8 items-center justify-center gap-1 rounded-full bg-[#dc2626] px-3 text-xs font-semibold text-white transition hover:bg-[#b91c1c] disabled:cursor-not-allowed disabled:bg-[#fca5a5]"
+                                  disabled={deletingParticipantIds.has(participant.id)}
+                                  onClick={() => void onDeleteParticipant(participant)}
+                                  type="button"
+                                >
+                                  {deletingParticipantIds.has(participant.id) ? (
+                                    <LoaderCircle className="size-3.5 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="size-3.5" />
+                                  )}
+                                  Slett
+                                </button>
+                              </div>
                             </li>
                           ))}
                         </ul>
@@ -501,15 +524,11 @@ function FestivalInfoBand({
             </div>
           </div>
 
-          <div className="relative z-10 mx-auto flex w-full max-w-[26rem] items-center justify-center rounded-[2rem] border border-white/45 bg-[#fcf5e8]/72 px-5 py-6 text-center shadow-[0_22px_60px_rgba(15,23,42,0.12)] backdrop-blur-[12px] sm:max-w-xl sm:px-8 sm:py-8 lg:col-start-2 lg:mt-0 lg:max-w-xl lg:-translate-y-12 lg:rounded-none lg:border-0 lg:bg-transparent lg:px-8 lg:py-0 lg:shadow-none lg:backdrop-blur-0">
+          <div className="relative z-10 mx-auto flex w-full max-w-[26rem] items-center justify-center rounded-[2rem] border border-white/45 bg-[#fcf5e8]/72 px-5 py-6 text-center shadow-[0_22px_60px_rgba(15,23,42,0.12)] backdrop-blur-[12px] sm:max-w-xl sm:px-8 sm:py-8 lg:col-start-2 lg:mt-0 lg:max-w-xl lg:-translate-y-4 lg:rounded-none lg:border-0 lg:bg-transparent lg:px-8 lg:py-0 lg:shadow-none lg:backdrop-blur-0">
             <div className="w-full">
               <h2 className="font-display text-4xl leading-none text-slate-950 sm:text-6xl lg:text-7xl">
                 Bilder
               </h2>
-              <p className="mt-3 text-sm leading-6 text-slate-700 sm:text-base">
-                Del nye minner eller hent hele bildepakken p&aring; mobilen med
-                ett trykk.
-              </p>
 
               <input
                 accept="image/*"
@@ -597,11 +616,6 @@ const marqueeReversePhotos: ReadonlyArray<MarqueePhoto> = [
     alt: "Bilde fra fjorarets Fister-festival i rullende galleri.",
   },
   {
-    src: "/festival/marquee-reverse/IMG_0191.jpeg",
-    alt: "Bilde fra fjorarets Fister-festival i rullende galleri.",
-    objectPosition: "center 18%",
-  },
-  {
     src: "/festival/marquee-reverse/IMG_0209.jpeg",
     alt: "Bilde fra fjorarets Fister-festival i rullende galleri.",
     objectPosition: "center 18%",
@@ -620,6 +634,11 @@ const marqueeReversePhotos: ReadonlyArray<MarqueePhoto> = [
     objectPosition: "center 20%",
   },
   {
+    src: "/festival/marquee-reverse/IMG_0191.jpeg",
+    alt: "Bilde fra fjorarets Fister-festival i rullende galleri.",
+    objectPosition: "center 18%",
+  },
+  {
     src: "/festival/marquee-reverse/IMG_9964.jpeg",
     alt: "Bilde fra fjorarets Fister-festival i rullende galleri.",
     objectPosition: "center 18%",
@@ -627,6 +646,7 @@ const marqueeReversePhotos: ReadonlyArray<MarqueePhoto> = [
   {
     src: "/festival/marquee-reverse/IMG_9973.jpeg",
     alt: "Bilde fra fjorarets Fister-festival i rullende galleri.",
+    objectPosition: "center 8%",
   },
 ];
 
@@ -652,6 +672,9 @@ export function FestivalApp() {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [participantsState, setParticipantsState] = useState<LoadState>(
     hasFirebaseConfig ? "loading" : "ready",
+  );
+  const [deletingParticipantIds, setDeletingParticipantIds] = useState<Set<string>>(
+    () => new Set(),
   );
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const totalParticipants = participants.reduce(
@@ -892,33 +915,108 @@ export function FestivalApp() {
     await submitSignupEntries([entry]);
   }
 
+  async function handleDeleteParticipant(participant: Participant) {
+    setDeletingParticipantIds((current) => {
+      const next = new Set(current);
+      next.add(participant.id);
+      return next;
+    });
+
+    try {
+      if (!hasFirebaseConfig || !db) {
+        const updatedParticipants = participants.filter(
+          (currentParticipant) => currentParticipant.id !== participant.id,
+        );
+
+        startTransition(() => {
+          setParticipants(updatedParticipants);
+          setParticipantsState("ready");
+        });
+
+        try {
+          window.localStorage.setItem(
+            LOCAL_PARTICIPANTS_STORAGE_KEY,
+            JSON.stringify(updatedParticipants),
+          );
+        } catch {
+          pushToast({
+            tone: "error",
+            title: "Kunne ikke lagre sletting lokalt",
+            description:
+              "Deltakeren ble fjernet fra visningen, men lokal lagring feilet.",
+          });
+        }
+
+        pushToast({
+          tone: "success",
+          title: "Deltaker slettet",
+          description: `${formatParticipantLabel(participant)} ble fjernet fra listen.`,
+        });
+        return;
+      }
+
+      const participantsRef = getParticipantsCollection();
+
+      if (!participantsRef) {
+        throw new Error("Kunne ikke finne deltakerlisten i Firebase.");
+      }
+
+      await deleteDoc(doc(participantsRef, participant.id));
+
+      startTransition(() => {
+        setParticipants((current) =>
+          current.filter((currentParticipant) => currentParticipant.id !== participant.id),
+        );
+        setParticipantsState("ready");
+      });
+
+      pushToast({
+        tone: "success",
+        title: "Deltaker slettet",
+        description: `${formatParticipantLabel(participant)} ble fjernet fra festivaloversikten.`,
+      });
+    } catch (error) {
+      pushToast({
+        tone: "error",
+        title: "Kunne ikke slette deltaker",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Prov igjen om et oyeblikk.",
+      });
+    } finally {
+      setDeletingParticipantIds((current) => {
+        const next = new Set(current);
+        next.delete(participant.id);
+        return next;
+      });
+    }
+  }
+
   return (
     <div className="relative overflow-hidden">
       <div className="hero-glow absolute left-[-10rem] top-[-4rem] size-[20rem] rounded-full bg-[#ffe5b4]" />
       <div className="hero-glow absolute right-[-7rem] top-40 size-[22rem] rounded-full bg-[#8fd3ff]" />
       <div className="hero-glow absolute bottom-10 left-1/3 size-[18rem] rounded-full bg-[#b8f2d9]" />
 
-      <div className="mx-auto flex min-h-screen max-w-7xl flex-col px-4 sm:px-6 lg:px-8">
+      <div className="relative z-10 mx-auto flex min-h-screen max-w-7xl flex-col px-4 sm:px-6 lg:px-8">
         <main className="flex flex-1 flex-col">
           <div className="flex flex-col gap-0">
             <section className="section-anchor">
               <div className="group relative left-1/2 w-screen -translate-x-1/2 min-h-[27rem] overflow-hidden sm:min-h-[34rem] lg:min-h-[46rem] xl:min-h-[52rem]">
                 <Image
                   alt="Stort festivalbilde fra Fister-Festivalen ved vannet."
-                  className="object-cover object-[center_56%] transition duration-700 group-hover:scale-105"
+                  className="object-cover object-[35%_56%] transition duration-700 group-hover:scale-105"
                   fill
                   priority
                   sizes="100vw"
                   src="/festival/hero-feature.jpg"
                 />
                 <div className="absolute inset-0 bg-gradient-to-b from-white/18 via-transparent to-slate-950/36" />
-                <div className="absolute inset-x-0 bottom-0 z-10">
-                  <div className="mx-auto w-full max-w-7xl px-4 pb-6 pt-20 sm:px-6 sm:pb-12 lg:px-8 lg:pb-16">
-                    <div className="mx-auto max-w-[22rem] rounded-[1.8rem] border border-white/60 bg-[#fff6e8]/60 px-5 py-5 text-center shadow-[0_18px_50px_rgba(15,23,42,0.12)] backdrop-blur-[12px] sm:max-w-3xl sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:shadow-none sm:backdrop-blur-0">
-                      <p className="text-[0.68rem] font-semibold uppercase tracking-[0.32em] text-slate-700 sm:text-[#f8f1df]">
-                        Sommer ved sj&oslash;kanten
-                      </p>
-                      <h1 className="mt-3 font-display text-[3.45rem] leading-[0.88] tracking-[-0.04em] text-[#0d8a58] drop-shadow-[0_10px_30px_rgba(255,255,255,0.35)] sm:text-6xl lg:text-7xl xl:text-8xl">
+                <div className="absolute inset-x-0 top-8 z-10 sm:top-12 lg:top-16">
+                  <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+                    <div className="mx-auto max-w-[22rem] px-5 py-2 text-center sm:max-w-3xl sm:px-0 sm:py-0">
+                      <h1 className="font-display text-[3.45rem] leading-[0.88] tracking-[-0.04em] text-[#0d8a58] drop-shadow-[0_10px_30px_rgba(255,255,255,0.35)] sm:text-6xl lg:text-7xl xl:text-8xl">
                         <span className="block">Fister-Festivalen</span>
                         <span className="block">2026</span>
                       </h1>
@@ -1035,6 +1133,8 @@ export function FestivalApp() {
 
             <FestivalInfoBand
               tone="green"
+              deletingParticipantIds={deletingParticipantIds}
+              onDeleteParticipant={handleDeleteParticipant}
               onQuickSignup={handleQuickSignup}
               signupDisabled={false}
               participants={participants}
