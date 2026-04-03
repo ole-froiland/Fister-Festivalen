@@ -36,7 +36,7 @@ import type { LoadState, Participant, ToastMessage } from "@/lib/types";
 import { formatParticipantLabel, getParticipantPartySize } from "@/lib/utils";
 
 const LOCAL_PARTICIPANTS_STORAGE_KEY = "fister-festivalen-local-participants";
-const IMAGE_ARCHIVE_PATH = "/fister-festivalen-bilder.zip";
+const IMAGE_ARCHIVE_PATH = "/api/download-images";
 
 const festivalDetails = [
   {
@@ -81,13 +81,15 @@ function CompactSignupCta({
   const [error, setError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const shouldFocusInputRef = useRef(false);
   const totalToRegister = companionCount + 1;
   const submitLabel = `Meld inn ${totalToRegister} ${
     totalToRegister === 1 ? "person" : "personer"
   }`;
 
-  function openSignup() {
+  function openSignup({ focusInput = false }: { focusInput?: boolean } = {}) {
     setError(null);
+    shouldFocusInputRef.current = focusInput;
     setIsExpanded(true);
   }
 
@@ -101,12 +103,21 @@ function CompactSignupCta({
       return;
     }
 
-    const animationFrameId = window.requestAnimationFrame(() => {
-      inputRef.current?.focus();
-    });
+    if (!shouldFocusInputRef.current) {
+      return;
+    }
+
+    shouldFocusInputRef.current = false;
+
+    const isFinePointer = window.matchMedia(
+      "(hover: hover) and (pointer: fine)",
+    ).matches;
+    const focusTimeoutId = window.setTimeout(() => {
+      inputRef.current?.focus({ preventScroll: true });
+    }, isFinePointer ? 220 : 320);
 
     return () => {
-      window.cancelAnimationFrame(animationFrameId);
+      window.clearTimeout(focusTimeoutId);
     };
   }, [isExpanded]);
 
@@ -200,8 +211,8 @@ function CompactSignupCta({
             }`}
           >
             <button
-              className="flex h-full w-full items-center justify-center gap-2 px-5 text-[0.92rem] font-semibold text-slate-900 sm:text-[0.9rem]"
-              onClick={openSignup}
+              className="flex h-full w-full touch-manipulation items-center justify-center gap-2 px-5 text-[0.92rem] font-semibold text-slate-900 sm:text-[0.9rem]"
+              onClick={() => openSignup({ focusInput: true })}
               type="button"
             >
               Meld deg p&aring;
@@ -210,7 +221,7 @@ function CompactSignupCta({
           </div>
 
           <form
-            className={`absolute inset-0 flex flex-wrap items-center gap-2.5 px-3 py-3.5 transition-[opacity,transform,filter] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] sm:flex-nowrap sm:gap-3 sm:px-4 sm:py-3 ${
+            className={`absolute inset-0 flex flex-wrap items-center gap-2.5 px-3 py-3.5 transition-[opacity,transform,filter] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] xl:flex-nowrap xl:gap-3 xl:px-4 xl:py-3 ${
               isExpanded
                 ? "translate-y-0 opacity-100 blur-0 delay-150"
                 : "pointer-events-none translate-y-2 scale-[0.992] opacity-0 blur-[3px]"
@@ -218,29 +229,32 @@ function CompactSignupCta({
             onSubmit={handleSubmit}
           >
             <input
-              className="order-1 h-12 min-w-0 basis-full bg-transparent px-3 text-[0.95rem] font-medium text-slate-950 outline-none placeholder:font-medium placeholder:text-slate-950 placeholder:opacity-100 disabled:cursor-default sm:h-14 sm:flex-1 sm:basis-auto sm:px-5 sm:text-[0.92rem] sm:max-w-[21rem] lg:max-w-[24rem]"
+              className="order-1 h-12 w-full min-w-0 basis-full bg-transparent px-3 text-base font-medium text-slate-950 outline-none placeholder:text-base placeholder:font-medium placeholder:text-slate-950 placeholder:opacity-100 disabled:cursor-default sm:h-14 sm:px-5 xl:flex-1 xl:basis-auto xl:min-w-[13rem] xl:text-[0.92rem] xl:placeholder:text-[0.92rem]"
+              autoComplete="name"
               disabled={!isExpanded || isSubmitting}
+              enterKeyHint="done"
               maxLength={80}
+              name="quick-signup-name"
               onChange={(event) => {
                 setName(event.target.value);
                 if (error) {
                   setError(null);
                 }
               }}
-              placeholder="Skriv navnet ditt"
+              placeholder="Navnet ditt"
               ref={inputRef}
               value={name}
             />
 
             <span
               aria-hidden="true"
-              className="order-2 hidden shrink-0 pl-1 text-lg font-semibold text-slate-700 sm:block sm:translate-x-8"
+              className="order-2 hidden shrink-0 pl-1 text-lg font-semibold text-slate-700 xl:block xl:translate-x-3"
             >
               +
             </span>
 
-            <div className="order-3 flex h-12 min-w-[8.5rem] shrink-0 items-center justify-between rounded-full bg-white/40 px-3 sm:ml-16 sm:h-14 sm:rounded-none sm:bg-transparent sm:px-0 lg:ml-20">
-              <div className="min-w-0 text-left sm:min-w-[4.5rem] sm:text-center">
+            <div className="order-3 flex h-12 w-full basis-full min-w-[8.5rem] shrink-0 items-center justify-between rounded-full bg-white/40 px-3 xl:ml-8 xl:h-14 xl:w-auto xl:basis-auto xl:rounded-none xl:bg-transparent xl:px-0 2xl:ml-12">
+              <div className="min-w-0 text-left xl:min-w-[4.5rem] xl:text-center">
                 <p className="text-[0.56rem] font-semibold uppercase tracking-[0.18em] text-slate-500">
                   Ekstra
                 </p>
@@ -250,7 +264,7 @@ function CompactSignupCta({
               </div>
               <div className="flex flex-col gap-1">
                 <button
-                  className="rounded-full p-1 text-slate-600 transition hover:bg-white/35 hover:text-slate-900 disabled:opacity-40"
+                  className="rounded-full p-1 text-slate-600 transition hover:bg-white/35 hover:text-slate-900 disabled:opacity-40 touch-manipulation"
                   disabled={!isExpanded || isSubmitting}
                   onClick={() =>
                     setCompanionCount((current) => Math.min(current + 1, 20))
@@ -260,7 +274,7 @@ function CompactSignupCta({
                   <ChevronUp className="size-4" />
                 </button>
                 <button
-                  className="rounded-full p-1 text-slate-600 transition hover:bg-white/35 hover:text-slate-900 disabled:opacity-40"
+                  className="rounded-full p-1 text-slate-600 transition hover:bg-white/35 hover:text-slate-900 disabled:opacity-40 touch-manipulation"
                   disabled={!isExpanded || isSubmitting}
                   onClick={() =>
                     setCompanionCount((current) => Math.max(current - 1, 0))
@@ -273,7 +287,7 @@ function CompactSignupCta({
             </div>
 
             <button
-              className="order-4 inline-flex h-12 w-full items-center justify-center rounded-full bg-[#0d8a58] px-7 text-[0.88rem] font-semibold text-white transition hover:bg-[#0b744b] disabled:cursor-not-allowed disabled:opacity-50 sm:ml-auto sm:h-14 sm:w-auto sm:text-[0.9rem]"
+              className="order-4 inline-flex h-12 w-full basis-full touch-manipulation items-center justify-center rounded-full bg-[#0d8a58] px-5 text-[0.88rem] leading-none font-semibold whitespace-nowrap text-white transition hover:bg-[#0b744b] disabled:cursor-not-allowed disabled:opacity-50 xl:ml-auto xl:h-14 xl:w-auto xl:basis-auto xl:px-6 xl:text-[0.9rem]"
               disabled={!isExpanded || disabled || isSubmitting}
               type="submit"
             >
@@ -339,7 +353,7 @@ function FestivalInfoBand({
     return (
       <section id="festivalinfo" className="section-anchor">
         <div
-          className={`relative left-1/2 flex w-screen -translate-x-1/2 px-4 py-8 sm:px-10 sm:py-10 lg:py-12 ${sectionClasses}`}
+          className={`relative left-1/2 flex w-screen -translate-x-1/2 px-4 pt-8 pb-3 sm:px-10 sm:py-10 lg:py-12 ${sectionClasses}`}
         >
           <div className="mx-auto w-full max-w-5xl text-center">
             <p className="mb-4 font-display text-[2.2rem] font-semibold uppercase tracking-[0.14em] text-[#0d8a58] sm:-mt-3 sm:mb-7 sm:text-4xl">
@@ -363,24 +377,24 @@ function FestivalInfoBand({
               </p>
             </div>
 
-            <div className="mx-auto mt-8 grid max-w-[22rem] gap-3 sm:max-w-4xl sm:gap-4 md:grid-cols-3">
+            <div className="mx-auto mt-8 grid max-w-[22rem] gap-4 sm:max-w-4xl sm:gap-4 md:grid-cols-3">
               {festivalDetails.map((detail) => {
                 const Icon = detail.icon;
 
                 return (
                   <div
                     key={detail.label}
-                    className="rounded-[1.4rem] border border-slate-900/10 bg-white/25 px-4 py-4 shadow-[0_12px_28px_rgba(15,23,42,0.05)] backdrop-blur-[8px] sm:rounded-[1.5rem] sm:px-5 sm:py-5"
+                    className="rounded-[1.55rem] border border-slate-900/10 bg-white/25 px-5 py-5 shadow-[0_12px_28px_rgba(15,23,42,0.05)] backdrop-blur-[8px] sm:rounded-[1.5rem] sm:px-5 sm:py-5"
                   >
-                    <div className="flex items-center gap-4 text-left md:block md:text-center">
-                      <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white/75 md:mx-auto">
-                        <Icon className="size-5 text-[#0d8a58]" />
+                    <div className="flex flex-col items-center text-center">
+                      <div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-white/75">
+                        <Icon className="size-6 text-[#0d8a58]" />
                       </div>
-                      <div className="min-w-0 md:mt-3">
-                        <p className="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-slate-600">
+                      <div className="mt-4 min-w-0">
+                        <p className="text-[0.78rem] font-semibold uppercase tracking-[0.24em] text-slate-600">
                           {detail.label}
                         </p>
-                        <p className="mt-1 text-[1.15rem] font-semibold text-slate-900 sm:text-xl">
+                        <p className="mt-2 text-[1.3rem] font-semibold text-slate-900 sm:text-xl">
                           {detail.value}
                         </p>
                       </div>
@@ -401,18 +415,14 @@ function FestivalInfoBand({
 
   return (
     <section id="signup" className="section-anchor">
-      <div className="relative left-1/2 flex w-screen -translate-x-1/2 items-start justify-center overflow-hidden px-4 py-8 sm:px-6 sm:py-10 lg:min-h-[25.5rem] lg:px-8 lg:py-12">
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 bg-[linear-gradient(180deg,#d8e9cf_0%,#f3e1c3_100%)] lg:hidden"
-        />
+      <div className="relative z-10 flex w-full items-start justify-center px-0 pt-0 pb-0 sm:px-0 sm:py-0 lg:left-1/2 lg:w-screen lg:-translate-x-1/2 lg:overflow-hidden lg:min-h-[25.5rem] lg:px-8 lg:py-12">
         <div aria-hidden="true" className="absolute inset-0 hidden lg:block">
           <div className="absolute inset-y-0 left-0 w-1/2 bg-[#b9d7ae]" />
           <div className="absolute inset-y-0 right-0 w-1/2 bg-[#eddabd]" />
         </div>
 
-        <div className="relative mx-auto grid w-full max-w-7xl gap-5 lg:grid-cols-2 lg:gap-0">
-          <div className="mx-auto flex w-full max-w-[26rem] flex-col items-center rounded-[2rem] border border-white/45 bg-[#f7eddc]/72 px-5 py-6 text-center shadow-[0_22px_60px_rgba(15,23,42,0.12)] backdrop-blur-[12px] sm:max-w-4xl sm:px-8 sm:py-8 lg:col-start-1 lg:max-w-[46rem] lg:-translate-y-4 lg:rounded-none lg:border-0 lg:bg-transparent lg:px-8 lg:py-0 lg:shadow-none lg:backdrop-blur-0">
+        <div className="relative mx-auto grid w-full max-w-7xl gap-0 lg:grid-cols-2 lg:gap-0">
+          <div className="mx-auto flex w-full max-w-none flex-col items-center bg-[#b9d7ae] px-5 py-8 text-center sm:px-8 sm:py-10 lg:col-start-1 lg:max-w-[46rem] lg:-translate-y-4 lg:bg-transparent lg:px-8 lg:py-0">
             <h2 className="font-display text-4xl leading-none text-slate-950 sm:text-6xl lg:text-7xl">
               P&aring;melding
             </h2>
@@ -524,8 +534,8 @@ function FestivalInfoBand({
             </div>
           </div>
 
-          <div className="relative z-10 mx-auto flex w-full max-w-[26rem] items-center justify-center rounded-[2rem] border border-white/45 bg-[#fcf5e8]/72 px-5 py-6 text-center shadow-[0_22px_60px_rgba(15,23,42,0.12)] backdrop-blur-[12px] sm:max-w-xl sm:px-8 sm:py-8 lg:col-start-2 lg:mt-0 lg:max-w-xl lg:-translate-y-4 lg:rounded-none lg:border-0 lg:bg-transparent lg:px-8 lg:py-0 lg:shadow-none lg:backdrop-blur-0">
-            <div className="w-full">
+          <div className="relative z-10 mx-auto flex w-full max-w-none items-center justify-center bg-[#eddabd] px-5 py-8 text-center sm:px-8 sm:py-10 lg:col-start-2 lg:mt-0 lg:max-w-xl lg:-translate-y-4 lg:bg-transparent lg:px-8 lg:py-0">
+            <div className="w-full max-w-[26rem]">
               <h2 className="font-display text-4xl leading-none text-slate-950 sm:text-6xl lg:text-7xl">
                 Bilder
               </h2>
@@ -551,7 +561,7 @@ function FestivalInfoBand({
 
                 <a
                   className="inline-flex h-12 w-full max-w-full items-center justify-center gap-2 rounded-full bg-[#0d8a58] px-5 text-base font-semibold !text-white transition hover:bg-[#0b744b] visited:!text-white sm:w-[20rem]"
-                  download
+                  download="fister-festivalen-bilder.zip"
                   href={IMAGE_ARCHIVE_PATH}
                 >
                   <Download className="size-5 text-white" />
@@ -648,11 +658,6 @@ const marqueeReversePhotos: ReadonlyArray<MarqueePhoto> = [
     alt: "Bilde fra fjorarets Fister-festival i rullende galleri.",
     objectPosition: "center 8%",
   },
-];
-
-const mobileGalleryPhotos: ReadonlyArray<MarqueePhoto> = [
-  ...marqueePhotos.slice(0, 3),
-  ...marqueeReversePhotos.slice(0, 3),
 ];
 
 function toParticipant(docId: string, data: Record<string, unknown>): Participant {
@@ -1003,7 +1008,7 @@ export function FestivalApp() {
         <main className="flex flex-1 flex-col">
           <div className="flex flex-col gap-0">
             <section className="section-anchor">
-              <div className="group relative left-1/2 w-screen -translate-x-1/2 min-h-[27rem] overflow-hidden sm:min-h-[34rem] lg:min-h-[46rem] xl:min-h-[52rem]">
+              <div className="group relative left-1/2 h-[100svh] min-h-[100svh] w-screen -translate-x-1/2 overflow-hidden">
                 <Image
                   alt="Stort festivalbilde fra Fister-Festivalen ved vannet."
                   className="object-cover object-[35%_56%] transition duration-700 group-hover:scale-105"
@@ -1013,11 +1018,11 @@ export function FestivalApp() {
                   src="/festival/hero-feature.jpg"
                 />
                 <div className="absolute inset-0 bg-gradient-to-b from-white/18 via-transparent to-slate-950/36" />
-                <div className="absolute inset-x-0 top-8 z-10 sm:top-12 lg:top-16">
+                <div className="absolute inset-0 z-10 flex items-start justify-center pt-12 sm:pt-16 lg:pt-20">
                   <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <div className="mx-auto max-w-[22rem] px-5 py-2 text-center sm:max-w-3xl sm:px-0 sm:py-0">
-                      <h1 className="font-display text-[3.45rem] leading-[0.88] tracking-[-0.04em] text-[#0d8a58] drop-shadow-[0_10px_30px_rgba(255,255,255,0.35)] sm:text-6xl lg:text-7xl xl:text-8xl">
-                        <span className="block">Fister-Festivalen</span>
+                    <div className="mx-auto max-w-[22rem] px-2 py-2 text-center sm:max-w-3xl sm:px-0 sm:py-0">
+                      <h1 className="font-display text-[clamp(2.1rem,10.5vw,3.45rem)] leading-[0.88] tracking-[-0.04em] text-[#0d8a58] drop-shadow-[0_10px_30px_rgba(255,255,255,0.35)] sm:text-6xl lg:text-7xl xl:text-8xl">
+                        <span className="block whitespace-nowrap">Fister-Festivalen</span>
                         <span className="block">2026</span>
                       </h1>
                     </div>
@@ -1028,48 +1033,8 @@ export function FestivalApp() {
 
             <FestivalInfoBand />
 
-            <section className="section-anchor sm:hidden">
-              <div className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden px-4 py-4">
-                <div className="mx-auto max-w-md">
-                  <div className="no-scrollbar overflow-x-auto">
-                    <div className="flex snap-x snap-mandatory gap-3 px-1">
-                      {mobileGalleryPhotos.map((photo) => (
-                        <article
-                          key={`mobile-${photo.src}`}
-                          className="relative h-[24rem] w-[78vw] max-w-[20rem] shrink-0 snap-center overflow-hidden rounded-[1.7rem] shadow-[0_18px_40px_rgba(15,23,42,0.14)]"
-                        >
-                          <Image
-                            alt={photo.alt}
-                            className="object-cover"
-                            fill
-                            sizes="78vw"
-                            style={
-                              photo.objectPosition
-                                ? ({
-                                    objectPosition: photo.objectPosition,
-                                  } satisfies CSSProperties)
-                                : undefined
-                            }
-                            src={photo.src}
-                          />
-                          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/45 to-transparent px-4 py-4">
-                            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-white/90">
-                              Stemning fra i fjor
-                            </p>
-                          </div>
-                        </article>
-                      ))}
-                    </div>
-                  </div>
-                  <p className="mt-3 text-center text-[0.74rem] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                    Swipe for flere bilder
-                  </p>
-                </div>
-              </div>
-            </section>
-
-            <section className="section-anchor hidden sm:block">
-              <div className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden pt-0 pb-0">
+            <section aria-hidden="true" className="section-anchor">
+              <div className="pointer-events-none relative left-1/2 w-screen -translate-x-1/2 overflow-hidden py-0">
                 <div className="space-y-0">
                   <div className="marquee-track">
                     {[0, 1].map((groupIndex) => (
@@ -1081,13 +1046,13 @@ export function FestivalApp() {
                         {marqueePhotos.map((photo) => (
                           <article
                             key={`${groupIndex}-${photo.src}`}
-                            className="relative h-56 w-[22rem] shrink-0 overflow-hidden sm:h-72 sm:w-[28rem]"
+                            className="relative h-40 w-[15rem] shrink-0 overflow-hidden sm:h-56 sm:w-[22rem] lg:h-72 lg:w-[28rem]"
                           >
                             <Image
                               alt={photo.alt}
                               className="object-cover"
                               fill
-                              sizes="(max-width: 640px) 22rem, 28rem"
+                              sizes="(max-width: 640px) 15rem, (max-width: 1024px) 22rem, 28rem"
                               src={photo.src}
                             />
                           </article>
@@ -1106,13 +1071,13 @@ export function FestivalApp() {
                         {marqueeReversePhotos.map((photo) => (
                           <article
                             key={`reverse-${groupIndex}-${photo.src}`}
-                            className="relative h-56 w-[22rem] shrink-0 overflow-hidden sm:h-72 sm:w-[28rem]"
+                            className="relative h-40 w-[15rem] shrink-0 overflow-hidden sm:h-56 sm:w-[22rem] lg:h-72 lg:w-[28rem]"
                           >
                             <Image
                               alt={photo.alt}
                               className="object-cover"
                               fill
-                              sizes="(max-width: 640px) 22rem, 28rem"
+                              sizes="(max-width: 640px) 15rem, (max-width: 1024px) 22rem, 28rem"
                               style={
                                 photo.objectPosition
                                   ? ({

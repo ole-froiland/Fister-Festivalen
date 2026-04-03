@@ -124,12 +124,3 @@ a {
   gap: 0;
   padding-right: 0;
 }
-
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}

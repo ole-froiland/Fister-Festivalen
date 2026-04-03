@@ -91,7 +91,7 @@ export function SignupForm({ disabled, onSubmit }: SignupFormProps) {
             id={`participant-${index}`}
             maxLength={80}
             onChange={(event) => updateField(index, event.target.value)}
-            placeholder="Skriv inn navn"
+            placeholder="Navnet ditt"
             value={field}
           />
         </div>
