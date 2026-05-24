@@ -595,7 +595,7 @@ function FestivalInfoBand({
               <div className="mt-8 flex flex-col items-center gap-4 sm:mt-12 sm:gap-5">
                 {sharedAlbumUrl ? (
                   <a
-                    className="inline-flex h-12 w-full max-w-full items-center justify-center gap-2 rounded-full bg-[#0d8a58] px-5 text-base font-semibold !text-white transition hover:bg-[#0b744b] visited:!text-white sm:w-[20rem]"
+                    className="inline-flex h-14 w-full max-w-full items-center justify-center gap-2 rounded-full bg-[#0d8a58] px-6 text-base font-semibold !text-white shadow-[0_18px_36px_rgba(15,23,42,0.08)] transition hover:bg-[#0b744b] visited:!text-white sm:w-[22rem]"
                     href={sharedAlbumUrl}
                     rel="noreferrer"
                     target="_blank"
@@ -604,7 +604,7 @@ function FestivalInfoBand({
                     &Aring;pne delt album
                   </a>
                 ) : (
-                  <div className="w-full max-w-full rounded-[1.3rem] bg-white/45 px-4 py-4 text-sm leading-6 text-slate-800 sm:w-[20rem]">
+                  <div className="w-full max-w-full rounded-[1.3rem] bg-white/45 px-4 py-4 text-sm leading-6 text-slate-800 sm:w-[22rem]">
                     Delt iPhone-album mangler lenke. Legg inn
                     {" "}
                     <span className="font-semibold">
@@ -615,22 +615,22 @@ function FestivalInfoBand({
                   </div>
                 )}
 
-                <div className="w-full max-w-full rounded-[1.6rem] bg-white/35 p-4 text-left shadow-[0_16px_32px_rgba(15,23,42,0.08)] sm:w-[20rem]">
-                  <p className="text-base font-semibold text-slate-950">
-                    Vil du bli med i delt album?
+                <div className="w-full max-w-full text-center sm:w-[22rem]">
+                  <p className="text-xl font-semibold text-slate-950">
+                    Vil du bli med i delt album (iPhone)?
                   </p>
-                  <p className="mt-1 text-sm leading-5 text-slate-700">
-                    Legg telefonnummeret ditt til under.
+                  <p className="mt-2 text-base leading-6 text-slate-700">
+                    Legg til nummer under.
                   </p>
 
                   <form
-                    className="mt-4 flex flex-col gap-2"
+                    className="mt-4 flex flex-col gap-3"
                     onSubmit={handleSharedAlbumPhoneSubmit}
                   >
                     <label className="sr-only" htmlFor="shared-album-phone">
                       Telefonnummer til delt album
                     </label>
-                    <div className="flex min-w-0 items-center gap-2 rounded-full bg-white/75 px-3 py-2">
+                    <div className="flex h-14 min-w-0 items-center gap-3 rounded-full bg-white/80 px-5 shadow-[0_12px_28px_rgba(15,23,42,0.06)]">
                       <Phone className="size-5 shrink-0 text-[#0d8a58]" />
                       <input
                         autoComplete="tel"
@@ -652,7 +652,7 @@ function FestivalInfoBand({
                     </div>
 
                     <button
-                      className="inline-flex h-11 w-full items-center justify-center rounded-full bg-[#0d8a58] px-4 text-sm font-semibold text-white transition hover:bg-[#0b744b] disabled:cursor-not-allowed disabled:bg-[#7db79a]"
+                      className="inline-flex h-14 w-full items-center justify-center rounded-full bg-[#0d8a58] px-6 text-base font-semibold text-white shadow-[0_18px_36px_rgba(15,23,42,0.08)] transition hover:bg-[#0b744b] disabled:cursor-not-allowed disabled:bg-[#7db79a]"
                       disabled={
                         sharedAlbumContactDisabled ||
                         isSubmittingSharedAlbumPhone
@@ -673,11 +673,11 @@ function FestivalInfoBand({
                     ) : null}
                   </form>
 
-                  <div className="mt-4 overflow-hidden rounded-[1.35rem] border border-[#d9c5a5] bg-[#eddabd]">
+                  <div className="mt-6 overflow-hidden rounded-full border border-[#d9c5a5] bg-[#eddabd] shadow-[0_18px_36px_rgba(15,23,42,0.08)] transition-[border-radius] duration-300 ease-out data-[open=true]:rounded-[1.7rem]" data-open={isSharedAlbumContactListOpen}>
                     <button
                       aria-controls="shared-album-contact-list"
                       aria-expanded={isSharedAlbumContactListOpen}
-                      className={`inline-flex h-11 w-full items-center justify-center gap-2 px-4 text-sm font-semibold text-slate-900 transition hover:bg-[#e7d0ad] ${
+                      className={`inline-flex h-14 w-full items-center justify-center gap-3 px-5 text-base font-semibold text-slate-900 transition hover:bg-[#e7d0ad] ${
                         isSharedAlbumContactListOpen
                           ? "border-b border-[#d9c5a5]"
                           : "border-b border-transparent"
@@ -689,7 +689,7 @@ function FestivalInfoBand({
                     >
                       <UsersRound className="size-5 text-[#0d8a58]" />
                       <span>Albumliste</span>
-                      <span className="rounded-full bg-white/65 px-2.5 py-1 text-sm font-bold text-slate-950">
+                      <span className="rounded-full bg-white/65 px-3 py-1.5 text-sm font-bold text-slate-950">
                         {sharedAlbumContacts.length}
                       </span>
                       <ChevronDown
