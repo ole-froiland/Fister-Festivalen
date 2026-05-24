@@ -39,6 +39,7 @@ import { formatParticipantLabel, getParticipantPartySize } from "@/lib/utils";
 const IMAGE_ARCHIVE_PATH = "/api/download-images";
 const GALLERY_API_PATH = "/api/gallery";
 const PARTICIPANTS_API_PATH = "/api/participants";
+const SHARED_PHOTOS_ALBUM_URL = process.env.NEXT_PUBLIC_SHARED_PHOTOS_ALBUM_URL;
 
 const festivalDetails = [
   {
@@ -357,6 +358,11 @@ function FestivalInfoBand({
   const sectionClasses = isGreen ? "bg-[#b9d7ae]" : "bg-[#eddabd]";
   const [isParticipantListOpen, setIsParticipantListOpen] = useState(false);
   const imageUploadInputRef = useRef<HTMLInputElement | null>(null);
+  const sharedAlbumUrl =
+    typeof SHARED_PHOTOS_ALBUM_URL === "string" &&
+    SHARED_PHOTOS_ALBUM_URL.startsWith("https://")
+      ? SHARED_PHOTOS_ALBUM_URL
+      : null;
 
   function openImagePicker() {
     imageUploadInputRef.current?.click();
@@ -605,6 +611,18 @@ function FestivalInfoBand({
                   )}
                   {isSharingImages ? "Klargjor bilder..." : "Lagre alle til Bilder"}
                 </button>
+
+                {sharedAlbumUrl ? (
+                  <a
+                    className="inline-flex h-12 w-full max-w-full items-center justify-center gap-2 rounded-full bg-[#0d8a58] px-5 text-base font-semibold !text-white transition hover:bg-[#0b744b] visited:!text-white sm:w-[20rem]"
+                    href={sharedAlbumUrl}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    <Share2 className="size-5 text-white" />
+                    &Aring;pne delt iPhone-album
+                  </a>
+                ) : null}
 
                 <a
                   className={`inline-flex h-12 w-full max-w-full items-center justify-center gap-2 rounded-full px-5 text-base font-semibold !text-white transition visited:!text-white sm:w-[20rem] ${
