@@ -199,7 +199,7 @@ function CompactSignupCta({
       >
         <div
           className={`relative transition-[height] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-            isExpanded ? "h-[13.25rem] lg:h-20" : "h-12"
+            isExpanded ? "h-16 lg:h-20" : "h-12"
           }`}
         >
           <div
@@ -221,7 +221,7 @@ function CompactSignupCta({
           </div>
 
           <form
-            className={`absolute inset-0 grid grid-cols-1 content-center gap-2.5 px-3 py-3.5 transition-[opacity,transform,filter] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] lg:grid-cols-[minmax(11rem,1fr)_auto_8rem_16rem] lg:items-center lg:gap-4 lg:px-5 lg:py-3 ${
+            className={`absolute inset-0 grid grid-cols-[minmax(4.75rem,1fr)_minmax(4.5rem,5.25rem)_minmax(7.75rem,42%)] content-center items-center gap-1.5 px-2 py-2 transition-[opacity,transform,filter] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] sm:grid-cols-[minmax(8rem,1fr)_auto_minmax(5.75rem,6.75rem)_minmax(10rem,12rem)] sm:gap-2.5 sm:px-3 lg:grid-cols-[minmax(9rem,1fr)_auto_7.25rem_minmax(13rem,14.5rem)] lg:gap-3 lg:px-5 lg:py-3 ${
               isExpanded
                 ? "translate-y-0 opacity-100 blur-0 delay-150"
                 : "pointer-events-none translate-y-2 scale-[0.992] opacity-0 blur-[3px]"
@@ -229,7 +229,7 @@ function CompactSignupCta({
             onSubmit={handleSubmit}
           >
             <input
-              className="h-12 w-full min-w-0 bg-transparent px-3 text-base font-medium text-slate-950 outline-none placeholder:text-base placeholder:font-medium placeholder:text-slate-950 placeholder:opacity-100 disabled:cursor-default lg:h-14 lg:px-5 lg:text-[0.92rem] lg:placeholder:text-[0.92rem]"
+              className="h-12 w-full min-w-0 bg-transparent px-2 text-[0.9rem] font-medium text-slate-950 outline-none placeholder:text-[0.9rem] placeholder:font-medium placeholder:text-slate-950 placeholder:opacity-100 disabled:cursor-default sm:px-3 sm:text-base sm:placeholder:text-base lg:h-14 lg:px-5 lg:text-[0.92rem] lg:placeholder:text-[0.92rem]"
               autoComplete="name"
               disabled={!isExpanded || isSubmitting}
               enterKeyHint="done"
@@ -248,17 +248,17 @@ function CompactSignupCta({
 
             <span
               aria-hidden="true"
-              className="hidden shrink-0 text-lg font-semibold text-slate-700 lg:block"
+              className="hidden shrink-0 text-lg font-semibold text-slate-700 sm:block"
             >
               +
             </span>
 
-            <div className="flex h-12 w-full min-w-0 shrink-0 items-center justify-between rounded-full bg-white/45 px-3 ring-1 ring-white/35 lg:h-14">
+            <div className="flex h-12 w-full min-w-0 shrink-0 items-center justify-between rounded-full bg-white/45 px-2.5 ring-1 ring-white/35 sm:px-3 lg:h-14">
               <div className="min-w-0 text-left">
-                <p className="text-[0.56rem] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                <p className="text-[0.5rem] font-semibold uppercase tracking-[0.14em] text-slate-500 sm:text-[0.56rem] sm:tracking-[0.18em]">
                   Ekstra
                 </p>
-                <p className="text-[1.15rem] font-semibold text-slate-900">
+                <p className="text-[1.05rem] font-semibold text-slate-900 sm:text-[1.15rem]">
                   {companionCount}
                 </p>
               </div>
@@ -287,7 +287,7 @@ function CompactSignupCta({
             </div>
 
             <button
-              className="inline-flex h-12 w-full min-w-0 touch-manipulation items-center justify-center gap-2 rounded-full bg-[#0d8a58] px-5 text-[0.88rem] leading-none font-semibold whitespace-nowrap text-white shadow-[0_10px_24px_rgba(13,138,88,0.24)] ring-1 ring-white/25 transition hover:-translate-y-0.5 hover:bg-[#0b744b] hover:shadow-[0_14px_28px_rgba(13,138,88,0.3)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0d8a58] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 lg:h-14 lg:px-5 lg:text-[0.92rem]"
+              className="inline-flex h-12 w-full min-w-0 touch-manipulation items-center justify-center gap-1.5 overflow-hidden rounded-full bg-[#0d8a58] px-2.5 text-[0.68rem] leading-none font-semibold whitespace-nowrap text-white shadow-[0_10px_24px_rgba(13,138,88,0.24)] ring-1 ring-white/25 transition hover:-translate-y-0.5 hover:bg-[#0b744b] hover:shadow-[0_14px_28px_rgba(13,138,88,0.3)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0d8a58] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 sm:gap-2 sm:px-3 sm:text-[0.78rem] md:text-[0.82rem] lg:h-14 lg:px-4 lg:text-[0.86rem]"
               disabled={!isExpanded || disabled || isSubmitting}
               type="submit"
             >
@@ -295,8 +295,8 @@ function CompactSignupCta({
                 <LoaderCircle className="size-5 animate-spin" />
               ) : (
                 <>
-                  <UsersRound className="size-4 shrink-0" />
-                  <span>{submitLabel}</span>
+                  <UsersRound className="hidden size-4 shrink-0 sm:block" />
+                  <span className="min-w-0">{submitLabel}</span>
                 </>
               )}
             </button>
