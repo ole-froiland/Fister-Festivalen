@@ -36,6 +36,7 @@ import type { LoadState, Participant, ToastMessage } from "@/lib/types";
 import { formatParticipantLabel, getParticipantPartySize } from "@/lib/utils";
 
 const IMAGE_ARCHIVE_PATH = "/api/download-images";
+const PARTICIPANTS_API_PATH = "/api/participants";
 
 const festivalDetails = [
   {
@@ -675,6 +676,32 @@ function toParticipant(docId: string, data: Record<string, unknown>): Participan
   };
 }
 
+function sortParticipants(participants: Participant[]) {
+  return [...participants].sort((left, right) => right.createdAtMs - left.createdAtMs);
+}
+
+async function fetchSharedParticipants() {
+  const response = await fetch(PARTICIPANTS_API_PATH, {
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error("Kunne ikke hente deltakerlisten.");
+  }
+
+  const payload = (await response.json()) as { participants?: unknown };
+
+  if (!Array.isArray(payload.participants)) {
+    return [];
+  }
+
+  return sortParticipants(
+    payload.participants.map((item) =>
+      toParticipant(String(item?.id ?? crypto.randomUUID()), item),
+    ),
+  );
+}
+
 export function FestivalApp() {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [participantsState, setParticipantsState] = useState<LoadState>(
@@ -701,9 +728,50 @@ export function FestivalApp() {
 
   useEffect(() => {
     if (!hasFirebaseConfig) {
-      setParticipants([]);
-      setParticipantsState("disabled");
-      return;
+      let isActive = true;
+
+      async function syncSharedParticipants({ silent = false } = {}) {
+        try {
+          if (!silent) {
+            setParticipantsState("loading");
+          }
+
+          const sharedParticipants = await fetchSharedParticipants();
+
+          if (!isActive) {
+            return;
+          }
+
+          startTransition(() => {
+            setParticipants(sharedParticipants);
+            setParticipantsState("ready");
+          });
+        } catch {
+          if (!isActive) {
+            return;
+          }
+
+          setParticipantsState("error");
+
+          if (!silent) {
+            pushToast({
+              tone: "error",
+              title: "Kunne ikke hente deltakere",
+              description: "Prov aa laste siden pa nytt.",
+            });
+          }
+        }
+      }
+
+      void syncSharedParticipants();
+      const intervalId = window.setInterval(() => {
+        void syncSharedParticipants({ silent: true });
+      }, 4_000);
+
+      return () => {
+        isActive = false;
+        window.clearInterval(intervalId);
+      };
     }
 
     const participantsRef = getParticipantsCollection();
@@ -762,7 +830,42 @@ export function FestivalApp() {
     }
 
     if (!hasFirebaseConfig || !db) {
-      throw new Error("Firebase er ikke konfigurert for delt paamelding.");
+      const response = await fetch(PARTICIPANTS_API_PATH, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ entries: normalizedEntries }),
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        throw new Error(payload?.error || "Kunne ikke lagre paameldingen.");
+      }
+
+      const sharedParticipants = await fetchSharedParticipants();
+
+      startTransition(() => {
+        setParticipants(sharedParticipants);
+        setParticipantsState("ready");
+      });
+
+      const totalAdded = normalizedEntries.reduce(
+        (sum, entry) => sum + entry.companionCount + 1,
+        0,
+      );
+
+      pushToast({
+        tone: "success",
+        title: "Paameldingen er registrert",
+        description: `${totalAdded} ${
+          totalAdded === 1 ? "person er" : "personer er"
+        } lagt til i festivaloversikten.`,
+      });
+
+      return;
     }
 
     const submittedAt = Date.now();
@@ -822,7 +925,30 @@ export function FestivalApp() {
 
     try {
       if (!hasFirebaseConfig || !db) {
-        throw new Error("Firebase er ikke konfigurert for delt paamelding.");
+        const response = await fetch(`${PARTICIPANTS_API_PATH}/${participant.id}`, {
+          method: "DELETE",
+        });
+
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => null)) as {
+            error?: string;
+          } | null;
+          throw new Error(payload?.error || "Kunne ikke slette deltakeren.");
+        }
+
+        const sharedParticipants = await fetchSharedParticipants();
+
+        startTransition(() => {
+          setParticipants(sharedParticipants);
+          setParticipantsState("ready");
+        });
+
+        pushToast({
+          tone: "success",
+          title: "Deltaker slettet",
+          description: `${formatParticipantLabel(participant)} ble fjernet fra festivaloversikten.`,
+        });
+        return;
       }
 
       const participantsRef = getParticipantsCollection();
