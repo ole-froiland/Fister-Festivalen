@@ -24,8 +24,11 @@ const firebaseApp = hasFirebaseConfig
 export const db = firebaseApp ? getFirestore(firebaseApp) : null;
 export const storage = firebaseApp ? getStorage(firebaseApp) : null;
 
+export const groupId =
+  process.env.NEXT_PUBLIC_FIREBASE_GROUP_ID || "fister-festivalen";
+
 export function getParticipantsCollection() {
-  return db ? collection(db, "participants") : null;
+  return db ? collection(db, "groups", groupId, "participants") : null;
 }
 
 export function getGalleryCollection() {

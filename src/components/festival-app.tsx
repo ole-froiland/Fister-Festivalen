@@ -35,7 +35,6 @@ import { db, getParticipantsCollection, hasFirebaseConfig } from "@/lib/firebase
 import type { LoadState, Participant, ToastMessage } from "@/lib/types";
 import { formatParticipantLabel, getParticipantPartySize } from "@/lib/utils";
 
-const LOCAL_PARTICIPANTS_STORAGE_KEY = "fister-festivalen-local-participants";
 const IMAGE_ARCHIVE_PATH = "/api/download-images";
 
 const festivalDetails = [
@@ -679,7 +678,7 @@ function toParticipant(docId: string, data: Record<string, unknown>): Participan
 export function FestivalApp() {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [participantsState, setParticipantsState] = useState<LoadState>(
-    hasFirebaseConfig ? "loading" : "ready",
+    hasFirebaseConfig ? "loading" : "disabled",
   );
   const [deletingParticipantIds, setDeletingParticipantIds] = useState<Set<string>>(
     () => new Set(),
@@ -701,54 +700,9 @@ export function FestivalApp() {
   }
 
   useEffect(() => {
-    if (hasFirebaseConfig) {
-      return;
-    }
-
-    try {
-      const storedValue = window.localStorage.getItem(
-        LOCAL_PARTICIPANTS_STORAGE_KEY,
-      );
-
-      if (!storedValue) {
-        return;
-      }
-
-      const parsedValue = JSON.parse(storedValue);
-
-      if (!Array.isArray(parsedValue)) {
-        return;
-      }
-
-      const parsedParticipants = parsedValue
-        .map((item) => toParticipant(String(item?.id ?? crypto.randomUUID()), item))
-        .sort((left, right) => right.createdAtMs - left.createdAtMs);
-
-      const animationFrameId = window.requestAnimationFrame(() => {
-        setParticipants(parsedParticipants);
-      });
-
-      return () => {
-        window.cancelAnimationFrame(animationFrameId);
-      };
-    } catch {
-      const animationFrameId = window.requestAnimationFrame(() => {
-        pushToast({
-          tone: "error",
-          title: "Kunne ikke lese lokal paamelding",
-          description:
-            "Lokal lagring i nettleseren feilet. Prov aa laste siden pa nytt.",
-        });
-      });
-
-      return () => {
-        window.cancelAnimationFrame(animationFrameId);
-      };
-    }
-  }, []);
-
-  useEffect(() => {
     if (!hasFirebaseConfig) {
+      setParticipants([]);
+      setParticipantsState("disabled");
       return;
     }
 
@@ -807,53 +761,11 @@ export function FestivalApp() {
       throw new Error("Legg inn minst ett navn for aa sende paameldingen.");
     }
 
-    const submittedAt = Date.now();
-    const localParticipants = normalizedEntries.map((entry, index) => ({
-      id: crypto.randomUUID(),
-      name: entry.name,
-      companionCount: entry.companionCount,
-      createdAtMs: submittedAt + index,
-    }));
-
     if (!hasFirebaseConfig || !db) {
-      const updatedParticipants = [...localParticipants, ...participants].sort(
-        (left, right) => right.createdAtMs - left.createdAtMs,
-      );
-
-      startTransition(() => {
-        setParticipants(updatedParticipants);
-        setParticipantsState("ready");
-      });
-
-      try {
-        window.localStorage.setItem(
-          LOCAL_PARTICIPANTS_STORAGE_KEY,
-          JSON.stringify(updatedParticipants),
-        );
-      } catch {
-        pushToast({
-          tone: "error",
-          title: "Kunne ikke lagre lokalt",
-          description: "Paameldingen vises naa, men ble ikke lagret i nettleseren.",
-        });
-      }
-
-      const totalAdded = normalizedEntries.reduce(
-        (sum, entry) => sum + entry.companionCount + 1,
-        0,
-      );
-
-      pushToast({
-        tone: "success",
-        title: "Paameldingen er registrert",
-        description: `${totalAdded} ${
-          totalAdded === 1 ? "person er" : "personer er"
-        } lagt til lokalt i festivaloversikten.`,
-      });
-
-      return;
+      throw new Error("Firebase er ikke konfigurert for delt paamelding.");
     }
 
+    const submittedAt = Date.now();
     const participantsRef = getParticipantsCollection();
 
     if (!participantsRef) {
@@ -883,28 +795,6 @@ export function FestivalApp() {
 
     await batch.commit();
 
-    startTransition(() => {
-      setParticipants((current) => {
-        const submittedIds = new Set(
-          submittedParticipants.map((participant) => participant.id),
-        );
-        const optimisticParticipants = submittedParticipants
-          .map((participant) => ({
-            id: participant.id,
-            name: participant.name,
-            companionCount: participant.companionCount,
-            createdAtMs: participant.createdAtMs,
-          }))
-          .sort((left, right) => right.createdAtMs - left.createdAtMs);
-
-        return [
-          ...optimisticParticipants,
-          ...current.filter((participant) => !submittedIds.has(participant.id)),
-        ];
-      });
-      setParticipantsState("ready");
-    });
-
     const totalAdded = normalizedEntries.reduce(
       (sum, entry) => sum + entry.companionCount + 1,
       0,
@@ -932,35 +822,7 @@ export function FestivalApp() {
 
     try {
       if (!hasFirebaseConfig || !db) {
-        const updatedParticipants = participants.filter(
-          (currentParticipant) => currentParticipant.id !== participant.id,
-        );
-
-        startTransition(() => {
-          setParticipants(updatedParticipants);
-          setParticipantsState("ready");
-        });
-
-        try {
-          window.localStorage.setItem(
-            LOCAL_PARTICIPANTS_STORAGE_KEY,
-            JSON.stringify(updatedParticipants),
-          );
-        } catch {
-          pushToast({
-            tone: "error",
-            title: "Kunne ikke lagre sletting lokalt",
-            description:
-              "Deltakeren ble fjernet fra visningen, men lokal lagring feilet.",
-          });
-        }
-
-        pushToast({
-          tone: "success",
-          title: "Deltaker slettet",
-          description: `${formatParticipantLabel(participant)} ble fjernet fra listen.`,
-        });
-        return;
+        throw new Error("Firebase er ikke konfigurert for delt paamelding.");
       }
 
       const participantsRef = getParticipantsCollection();
@@ -970,13 +832,6 @@ export function FestivalApp() {
       }
 
       await deleteDoc(doc(participantsRef, participant.id));
-
-      startTransition(() => {
-        setParticipants((current) =>
-          current.filter((currentParticipant) => currentParticipant.id !== participant.id),
-        );
-        setParticipantsState("ready");
-      });
 
       pushToast({
         tone: "success",
