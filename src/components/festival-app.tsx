@@ -19,7 +19,6 @@ import {
   LoaderCircle,
   MapPin,
   Phone,
-  Share2,
   Trash2,
   UsersRound,
 } from "lucide-react";
@@ -44,7 +43,6 @@ import { formatParticipantLabel, getParticipantPartySize } from "@/lib/utils";
 
 const PARTICIPANTS_API_PATH = "/api/participants";
 const SHARED_ALBUM_CONTACTS_API_PATH = "/api/shared-album-contacts";
-const SHARED_PHOTOS_ALBUM_URL = process.env.NEXT_PUBLIC_SHARED_PHOTOS_ALBUM_URL;
 
 const festivalDetails = [
   {
@@ -55,7 +53,8 @@ const festivalDetails = [
   {
     icon: CalendarDays,
     label: "Nar",
-    value: "TBA",
+    value: "Andre halvdel av juli",
+    note: "Datoen er ikke helt satt enda – vi kommer tilbake til den når det nærmer seg og været er mer satt.",
   },
   {
     icon: CloudSun,
@@ -363,11 +362,6 @@ function FestivalInfoBand({
   const [sharedAlbumPhoneError, setSharedAlbumPhoneError] = useState<string | null>(
     null,
   );
-  const sharedAlbumUrl =
-    typeof SHARED_PHOTOS_ALBUM_URL === "string" &&
-    SHARED_PHOTOS_ALBUM_URL.startsWith("https://")
-      ? SHARED_PHOTOS_ALBUM_URL
-      : null;
 
   if (!isGreen) {
     return (
@@ -417,6 +411,11 @@ function FestivalInfoBand({
                         <p className="mt-2 text-[1.3rem] font-semibold text-slate-900 sm:text-xl">
                           {detail.value}
                         </p>
+                        {"note" in detail && detail.note ? (
+                          <p className="mt-2 text-sm leading-6 text-slate-600 sm:text-base">
+                            {detail.note}
+                          </p>
+                        ) : null}
                       </div>
                     </div>
                   </div>
@@ -593,34 +592,9 @@ function FestivalInfoBand({
               </h2>
 
               <div className="mt-8 flex flex-col items-center gap-4 sm:mt-12 sm:gap-5">
-                {sharedAlbumUrl ? (
-                  <a
-                    className="inline-flex h-14 w-full max-w-full items-center justify-center gap-2 rounded-full bg-[#0d8a58] px-6 text-base font-semibold !text-white shadow-[0_18px_36px_rgba(15,23,42,0.08)] transition hover:bg-[#0b744b] visited:!text-white sm:w-[22rem]"
-                    href={sharedAlbumUrl}
-                    rel="noreferrer"
-                    target="_blank"
-                  >
-                    <Share2 className="size-5 text-white" />
-                    &Aring;pne delt album
-                  </a>
-                ) : (
-                  <div className="w-full max-w-full rounded-[1.3rem] bg-white/45 px-4 py-4 text-sm leading-6 text-slate-800 sm:w-[22rem]">
-                    Delt iPhone-album mangler lenke. Legg inn
-                    {" "}
-                    <span className="font-semibold">
-                      NEXT_PUBLIC_SHARED_PHOTOS_ALBUM_URL
-                    </span>
-                    {" "}
-                    i Netlify.
-                  </div>
-                )}
-
                 <div className="w-full max-w-full text-center sm:w-[22rem]">
                   <p className="text-xl font-semibold text-slate-950">
                     Vil du bli med i delt album (iPhone)?
-                  </p>
-                  <p className="mt-2 text-base leading-6 text-slate-700">
-                    Legg til nummer under.
                   </p>
 
                   <form
