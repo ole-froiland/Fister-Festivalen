@@ -15,12 +15,10 @@ import {
   ChevronDown,
   ChevronUp,
   CloudSun,
-  Download,
   LoaderCircle,
   MapPin,
   Share2,
   Trash2,
-  UploadCloud,
   UsersRound,
 } from "lucide-react";
 import {
@@ -33,11 +31,9 @@ import {
 
 import { ToastRegion } from "@/components/toast-region";
 import { db, getParticipantsCollection, hasFirebaseConfig } from "@/lib/firebase";
-import type { GalleryItem, LoadState, Participant, ToastMessage } from "@/lib/types";
+import type { LoadState, Participant, ToastMessage } from "@/lib/types";
 import { formatParticipantLabel, getParticipantPartySize } from "@/lib/utils";
 
-const IMAGE_ARCHIVE_PATH = "/api/download-images";
-const GALLERY_API_PATH = "/api/gallery";
 const PARTICIPANTS_API_PATH = "/api/participants";
 const SHARED_PHOTOS_ALBUM_URL = process.env.NEXT_PUBLIC_SHARED_PHOTOS_ALBUM_URL;
 
@@ -68,11 +64,6 @@ type MarqueePhoto = {
 type SignupEntry = {
   name: string;
   companionCount: number;
-};
-
-type ShareNavigator = Navigator & {
-  canShare?: (data: ShareData) => boolean;
-  share?: (data: ShareData) => Promise<void>;
 };
 
 function CompactSignupCta({
@@ -327,13 +318,7 @@ function FestivalInfoBand({
   tone = "sand",
   onQuickSignup,
   onDeleteParticipant,
-  onImageUpload,
-  onShareAllImages,
   signupDisabled = false,
-  galleryItems = [],
-  galleryState = "ready",
-  isUploadingImages = false,
-  isSharingImages = false,
   participants = [],
   participantState = "ready",
   totalParticipants = 0,
@@ -342,13 +327,7 @@ function FestivalInfoBand({
   tone?: "sand" | "green";
   onQuickSignup?: (entry: SignupEntry) => Promise<void>;
   onDeleteParticipant?: (participant: Participant) => Promise<void>;
-  onImageUpload?: (files: File[]) => Promise<void>;
-  onShareAllImages?: () => Promise<void>;
   signupDisabled?: boolean;
-  galleryItems?: GalleryItem[];
-  galleryState?: LoadState;
-  isUploadingImages?: boolean;
-  isSharingImages?: boolean;
   participants?: Participant[];
   participantState?: LoadState;
   totalParticipants?: number;
@@ -357,27 +336,11 @@ function FestivalInfoBand({
   const isGreen = tone === "green";
   const sectionClasses = isGreen ? "bg-[#b9d7ae]" : "bg-[#eddabd]";
   const [isParticipantListOpen, setIsParticipantListOpen] = useState(false);
-  const imageUploadInputRef = useRef<HTMLInputElement | null>(null);
   const sharedAlbumUrl =
     typeof SHARED_PHOTOS_ALBUM_URL === "string" &&
     SHARED_PHOTOS_ALBUM_URL.startsWith("https://")
       ? SHARED_PHOTOS_ALBUM_URL
       : null;
-
-  function openImagePicker() {
-    imageUploadInputRef.current?.click();
-  }
-
-  function handleImageSelection(event: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(event.target.files ?? []);
-
-    if (files.length === 0) {
-      return;
-    }
-
-    event.target.value = "";
-    void onImageUpload?.(files);
-  }
 
   if (!isGreen) {
     return (
@@ -570,15 +533,6 @@ function FestivalInfoBand({
                 Bilder
               </h2>
 
-              <input
-                accept="image/*"
-                className="sr-only"
-                multiple
-                onChange={handleImageSelection}
-                ref={imageUploadInputRef}
-                type="file"
-              />
-
               <div className="mt-8 flex flex-col items-center gap-4 sm:mt-12 sm:gap-5">
                 {sharedAlbumUrl ? (
                   <a
@@ -588,7 +542,7 @@ function FestivalInfoBand({
                     target="_blank"
                   >
                     <Share2 className="size-5 text-white" />
-                    &Aring;pne delt iPhone-album
+                    &Aring;pne delt album
                   </a>
                 ) : (
                   <div className="w-full max-w-full rounded-[1.3rem] bg-white/45 px-4 py-4 text-sm leading-6 text-slate-800 sm:w-[20rem]">
@@ -601,120 +555,6 @@ function FestivalInfoBand({
                     i Netlify.
                   </div>
                 )}
-
-                <p className="max-w-[20rem] text-center text-sm leading-6 text-slate-700">
-                  For at bildene skal vises i iPhone-albumet maa de legges til i
-                  albumet via Bilder-appen.
-                </p>
-
-                <button
-                  className="inline-flex h-12 w-full max-w-full items-center justify-center gap-2 rounded-full bg-[#0d8a58] px-5 text-base font-semibold text-white transition hover:bg-[#0b744b] disabled:cursor-not-allowed disabled:opacity-60 sm:w-[20rem]"
-                  disabled={isUploadingImages}
-                  onClick={openImagePicker}
-                  type="button"
-                >
-                  {isUploadingImages ? (
-                    <LoaderCircle className="size-5 animate-spin" />
-                  ) : (
-                    <UploadCloud className="size-5" />
-                  )}
-                  {isUploadingImages ? "Laster opp..." : "Last opp bilder"}
-                </button>
-
-                <button
-                  className={`inline-flex h-12 w-full max-w-full items-center justify-center gap-2 rounded-full px-5 text-base font-semibold text-white transition sm:w-[20rem] ${
-                    galleryItems.length > 0
-                      ? "bg-[#0d8a58] hover:bg-[#0b744b]"
-                      : "cursor-not-allowed bg-[#0d8a58]/45"
-                  }`}
-                  disabled={galleryItems.length === 0 || isSharingImages}
-                  onClick={() => void onShareAllImages?.()}
-                  type="button"
-                >
-                  {isSharingImages ? (
-                    <LoaderCircle className="size-5 animate-spin" />
-                  ) : (
-                    <Share2 className="size-5 text-white" />
-                  )}
-                  {isSharingImages ? "Klargjor bilder..." : "Lagre alle til Bilder"}
-                </button>
-
-                <a
-                  className={`inline-flex h-12 w-full max-w-full items-center justify-center gap-2 rounded-full px-5 text-base font-semibold !text-white transition visited:!text-white sm:w-[20rem] ${
-                    galleryItems.length > 0
-                      ? "bg-[#0d8a58]/85 hover:bg-[#0b744b]"
-                      : "pointer-events-none bg-[#0d8a58]/35"
-                  }`}
-                  download="fister-festivalen-bilder.zip"
-                  href={IMAGE_ARCHIVE_PATH}
-                >
-                  <Download className="size-5 text-white" />
-                  Last ned zip
-                </a>
-              </div>
-
-              <div className="mt-6 text-left">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm font-semibold text-slate-900">
-                    Opplastede bilder
-                  </p>
-                  <span className="rounded-full bg-white/55 px-2.5 py-1 text-xs font-bold text-slate-950">
-                    {galleryItems.length}
-                  </span>
-                </div>
-
-                {galleryState === "loading" ? (
-                  <div className="mt-3 flex h-24 items-center justify-center rounded-[1.2rem] bg-white/40">
-                    <LoaderCircle className="size-5 animate-spin text-[#0d8a58]" />
-                  </div>
-                ) : null}
-
-                {galleryState !== "loading" && galleryItems.length === 0 ? (
-                  <div className="mt-3 rounded-[1.2rem] bg-white/45 px-4 py-4 text-sm leading-6 text-slate-700">
-                    Ingen bilder er lastet opp enda.
-                  </div>
-                ) : null}
-
-                {galleryItems.length > 0 ? (
-                  <div className="mt-3 grid grid-cols-2 gap-3">
-                    {galleryItems.slice(0, 8).map((item) => (
-                      <figure
-                        className="overflow-hidden rounded-[1.1rem] bg-white/55 shadow-[0_10px_24px_rgba(15,23,42,0.08)]"
-                        key={item.id}
-                      >
-                        <a
-                          aria-label={`Aapne ${item.name}`}
-                          href={item.url}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          <div className="relative aspect-square w-full">
-                            <Image
-                              alt={item.name}
-                              className="object-cover"
-                              fill
-                              sizes="(max-width: 640px) 45vw, 12rem"
-                              src={item.url}
-                              unoptimized
-                            />
-                          </div>
-                        </a>
-                        <div className="flex items-center justify-between gap-2 px-3 py-2">
-                          <figcaption className="min-w-0 truncate text-xs font-semibold text-slate-800">
-                            {item.name}
-                          </figcaption>
-                          <a
-                            className="shrink-0 rounded-full bg-[#0d8a58] px-2.5 py-1 text-xs font-semibold !text-white visited:!text-white"
-                            download={item.name}
-                            href={item.url}
-                          >
-                            Lagre
-                          </a>
-                        </div>
-                      </figure>
-                    ))}
-                  </div>
-                ) : null}
               </div>
             </div>
           </div>
@@ -870,71 +710,6 @@ async function fetchSharedParticipants() {
   return toParticipantsFromPayload(await response.json());
 }
 
-function toGalleryItemsFromPayload(payload: unknown) {
-  if (!payload || typeof payload !== "object") {
-    return [];
-  }
-
-  const items = (payload as { items?: unknown }).items;
-
-  if (!Array.isArray(items)) {
-    return [];
-  }
-
-  return items
-    .map((item) => {
-      if (!item || typeof item !== "object") {
-        return null;
-      }
-
-      const value = item as Record<string, unknown>;
-
-      if (
-        typeof value.id !== "string" ||
-        typeof value.name !== "string" ||
-        typeof value.url !== "string" ||
-        typeof value.storagePath !== "string" ||
-        typeof value.createdAtMs !== "number"
-      ) {
-        return null;
-      }
-
-      return {
-        id: value.id,
-        name: value.name,
-        url: value.url,
-        storagePath: value.storagePath,
-        createdAtMs: value.createdAtMs,
-      } satisfies GalleryItem;
-    })
-    .filter((item): item is GalleryItem => item !== null)
-    .sort((left, right) => right.createdAtMs - left.createdAtMs);
-}
-
-function mergeGalleryItems(currentItems: GalleryItem[], nextItems: GalleryItem[]) {
-  const itemsById = new Map(currentItems.map((item) => [item.id, item]));
-
-  nextItems.forEach((item) => {
-    itemsById.set(item.id, item);
-  });
-
-  return [...itemsById.values()].sort(
-    (left, right) => right.createdAtMs - left.createdAtMs,
-  );
-}
-
-async function fetchGalleryItems() {
-  const response = await fetch(GALLERY_API_PATH, {
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    throw new Error("Kunne ikke hente bildene.");
-  }
-
-  return toGalleryItemsFromPayload(await response.json());
-}
-
 export function FestivalApp() {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [participantsState, setParticipantsState] = useState<LoadState>(
@@ -943,10 +718,6 @@ export function FestivalApp() {
   const [deletingParticipantIds, setDeletingParticipantIds] = useState<Set<string>>(
     () => new Set(),
   );
-  const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
-  const [galleryState, setGalleryState] = useState<LoadState>("loading");
-  const [isUploadingImages, setIsUploadingImages] = useState(false);
-  const [isSharingImages, setIsSharingImages] = useState(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const totalParticipants = participants.reduce(
     (sum, participant) => sum + getParticipantPartySize(participant),
@@ -1054,53 +825,6 @@ export function FestivalApp() {
     return () => window.clearTimeout(timeoutId);
   }, [toasts]);
 
-  useEffect(() => {
-    let isActive = true;
-
-    async function syncGallery({ silent = false } = {}) {
-      try {
-        if (!silent) {
-          setGalleryState("loading");
-        }
-
-        const items = await fetchGalleryItems();
-
-        if (!isActive) {
-          return;
-        }
-
-        startTransition(() => {
-          setGalleryItems(items);
-          setGalleryState("ready");
-        });
-      } catch {
-        if (!isActive) {
-          return;
-        }
-
-        setGalleryState("error");
-
-        if (!silent) {
-          pushToast({
-            tone: "error",
-            title: "Kunne ikke hente bilder",
-            description: "Prov aa laste siden pa nytt.",
-          });
-        }
-      }
-    }
-
-    void syncGallery();
-    const intervalId = window.setInterval(() => {
-      void syncGallery({ silent: true });
-    }, 8_000);
-
-    return () => {
-      isActive = false;
-      window.clearInterval(intervalId);
-    };
-  }, []);
-
   async function submitSignupEntries(entries: SignupEntry[]) {
     const normalizedEntries = entries
       .map((entry) => ({
@@ -1200,136 +924,6 @@ export function FestivalApp() {
 
   async function handleQuickSignup(entry: SignupEntry) {
     await submitSignupEntries([entry]);
-  }
-
-  async function handleImageUpload(files: File[]) {
-    const imageFiles = files.filter((file) => file.type.startsWith("image/"));
-
-    if (imageFiles.length === 0) {
-      pushToast({
-        tone: "error",
-        title: "Ingen bilder valgt",
-        description: "Velg ett eller flere bilder fra biblioteket.",
-      });
-      return;
-    }
-
-    setIsUploadingImages(true);
-
-    try {
-      const formData = new FormData();
-      imageFiles.forEach((file) => {
-        formData.append("images", file);
-      });
-
-      const response = await fetch(GALLERY_API_PATH, {
-        method: "POST",
-        body: formData,
-      });
-
-      const payload = await response.json().catch(() => null);
-
-      if (!response.ok) {
-        throw new Error(
-          typeof payload?.error === "string"
-            ? payload.error
-            : "Kunne ikke laste opp bildene.",
-        );
-      }
-
-      const uploadedItems = toGalleryItemsFromPayload(payload);
-
-      startTransition(() => {
-        setGalleryItems((current) => mergeGalleryItems(current, uploadedItems));
-        setGalleryState("ready");
-      });
-
-      pushToast({
-        tone: "success",
-        title: "Bildene er lastet opp",
-        description: `${uploadedItems.length} ${
-          uploadedItems.length === 1 ? "bilde er" : "bilder er"
-        } lagt til i galleriet.`,
-      });
-    } catch (error) {
-      pushToast({
-        tone: "error",
-        title: "Kunne ikke laste opp bilder",
-        description:
-          error instanceof Error ? error.message : "Prov igjen om et oyeblikk.",
-      });
-    } finally {
-      setIsUploadingImages(false);
-    }
-  }
-
-  function downloadImageArchive() {
-    const link = document.createElement("a");
-    link.href = IMAGE_ARCHIVE_PATH;
-    link.download = "fister-festivalen-bilder.zip";
-    document.body.append(link);
-    link.click();
-    link.remove();
-  }
-
-  async function handleShareAllImages() {
-    if (galleryItems.length === 0) {
-      return;
-    }
-
-    setIsSharingImages(true);
-
-    try {
-      const files = await Promise.all(
-        galleryItems.map(async (item) => {
-          const response = await fetch(item.url);
-
-          if (!response.ok) {
-            throw new Error(`Kunne ikke hente ${item.name}.`);
-          }
-
-          const blob = await response.blob();
-          const fileType = blob.type || "image/jpeg";
-          const fileName = item.name.includes(".")
-            ? item.name
-            : `${item.name}.jpg`;
-
-          return new File([blob], fileName, {
-            type: fileType,
-          });
-        }),
-      );
-      const shareNavigator = navigator as ShareNavigator;
-      const shareData: ShareData = {
-        files,
-        title: "Fister-Festivalen bilder",
-      };
-
-      if (!shareNavigator.share || !shareNavigator.canShare?.({ files })) {
-        downloadImageArchive();
-        pushToast({
-          tone: "info",
-          title: "Mobilen stotter ikke deling av alle bildene",
-          description: "Jeg startet zip-nedlasting i stedet.",
-        });
-        return;
-      }
-
-      await shareNavigator.share(shareData);
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") {
-        return;
-      }
-
-      downloadImageArchive();
-      pushToast({
-        tone: "info",
-        title: "Kunne ikke dele alle bildene direkte",
-        description: "Jeg startet zip-nedlasting i stedet.",
-      });
-    } finally {
-      setIsSharingImages(false);
-    }
   }
 
   async function handleDeleteParticipant(participant: Participant) {
@@ -1501,14 +1095,8 @@ export function FestivalApp() {
             <FestivalInfoBand
               tone="green"
               deletingParticipantIds={deletingParticipantIds}
-              galleryItems={galleryItems}
-              galleryState={galleryState}
-              isSharingImages={isSharingImages}
-              isUploadingImages={isUploadingImages}
               onDeleteParticipant={handleDeleteParticipant}
-              onImageUpload={handleImageUpload}
               onQuickSignup={handleQuickSignup}
-              onShareAllImages={handleShareAllImages}
               signupDisabled={false}
               participants={participants}
               participantState={participantsState}
