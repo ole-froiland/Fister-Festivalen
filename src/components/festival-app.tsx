@@ -418,7 +418,7 @@ function FestivalInfoBand({
 
   return (
     <section id="signup" className="section-anchor">
-      <div className="relative z-10 flex w-full items-start justify-center px-0 pt-0 pb-0 sm:px-0 sm:py-0 lg:left-1/2 lg:w-screen lg:-translate-x-1/2 lg:overflow-hidden lg:min-h-[25.5rem] lg:px-8 lg:py-12">
+      <div className="relative left-1/2 z-10 flex w-screen -translate-x-1/2 items-start justify-center overflow-hidden px-0 pt-0 pb-0 sm:px-0 sm:py-0 lg:min-h-[25.5rem] lg:px-8 lg:py-12">
         <div aria-hidden="true" className="absolute inset-0 hidden lg:block">
           <div className="absolute inset-y-0 left-0 w-1/2 bg-[#b9d7ae]" />
           <div className="absolute inset-y-0 right-0 w-1/2 bg-[#eddabd]" />
