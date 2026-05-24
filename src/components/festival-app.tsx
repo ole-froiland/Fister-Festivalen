@@ -580,6 +580,33 @@ function FestivalInfoBand({
               />
 
               <div className="mt-8 flex flex-col items-center gap-4 sm:mt-12 sm:gap-5">
+                {sharedAlbumUrl ? (
+                  <a
+                    className="inline-flex h-12 w-full max-w-full items-center justify-center gap-2 rounded-full bg-[#0d8a58] px-5 text-base font-semibold !text-white transition hover:bg-[#0b744b] visited:!text-white sm:w-[20rem]"
+                    href={sharedAlbumUrl}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    <Share2 className="size-5 text-white" />
+                    &Aring;pne delt iPhone-album
+                  </a>
+                ) : (
+                  <div className="w-full max-w-full rounded-[1.3rem] bg-white/45 px-4 py-4 text-sm leading-6 text-slate-800 sm:w-[20rem]">
+                    Delt iPhone-album mangler lenke. Legg inn
+                    {" "}
+                    <span className="font-semibold">
+                      NEXT_PUBLIC_SHARED_PHOTOS_ALBUM_URL
+                    </span>
+                    {" "}
+                    i Netlify.
+                  </div>
+                )}
+
+                <p className="max-w-[20rem] text-center text-sm leading-6 text-slate-700">
+                  For at bildene skal vises i iPhone-albumet maa de legges til i
+                  albumet via Bilder-appen.
+                </p>
+
                 <button
                   className="inline-flex h-12 w-full max-w-full items-center justify-center gap-2 rounded-full bg-[#0d8a58] px-5 text-base font-semibold text-white transition hover:bg-[#0b744b] disabled:cursor-not-allowed disabled:opacity-60 sm:w-[20rem]"
                   disabled={isUploadingImages}
@@ -611,31 +638,6 @@ function FestivalInfoBand({
                   )}
                   {isSharingImages ? "Klargjor bilder..." : "Lagre alle til Bilder"}
                 </button>
-
-                {sharedAlbumUrl ? (
-                  <a
-                    className="inline-flex h-12 w-full max-w-full items-center justify-center gap-2 rounded-full bg-[#0d8a58] px-5 text-base font-semibold !text-white transition hover:bg-[#0b744b] visited:!text-white sm:w-[20rem]"
-                    href={sharedAlbumUrl}
-                    rel="noreferrer"
-                    target="_blank"
-                  >
-                    <Share2 className="size-5 text-white" />
-                    &Aring;pne delt iPhone-album
-                  </a>
-                ) : (
-                  <button
-                    className="inline-flex h-12 w-full max-w-full items-center justify-center gap-2 rounded-full bg-[#0d8a58]/45 px-5 text-base font-semibold text-white sm:w-[20rem]"
-                    onClick={() => {
-                      window.alert(
-                        "Delt iPhone-album er ikke koblet til enda. Lag et delt album i Bilder og legg lenken inn som NEXT_PUBLIC_SHARED_PHOTOS_ALBUM_URL i Netlify.",
-                      );
-                    }}
-                    type="button"
-                  >
-                    <Share2 className="size-5 text-white" />
-                    Koble delt iPhone-album
-                  </button>
-                )}
 
                 <a
                   className={`inline-flex h-12 w-full max-w-full items-center justify-center gap-2 rounded-full px-5 text-base font-semibold !text-white transition visited:!text-white sm:w-[20rem] ${
