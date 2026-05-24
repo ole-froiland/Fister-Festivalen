@@ -113,7 +113,7 @@ function CompactSignupCta({
     ).matches;
     const focusTimeoutId = window.setTimeout(() => {
       inputRef.current?.focus({ preventScroll: true });
-    }, isFinePointer ? 220 : 320);
+    }, isFinePointer ? 160 : 220);
 
     return () => {
       window.clearTimeout(focusTimeoutId);
@@ -190,23 +190,23 @@ function CompactSignupCta({
     <div className="mx-auto mt-8 w-full max-w-[28rem] sm:mt-12 lg:max-w-[70rem]">
       <div
         ref={containerRef}
-        className={`mx-auto origin-center overflow-hidden border border-[#d9c5a5] bg-[#eddabd] will-change-[width,max-width,transform] transition-[width,max-width,border-radius,box-shadow,transform] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+        className={`mx-auto origin-center overflow-hidden border border-[#d9c5a5] bg-[#eddabd] will-change-transform transition-[border-radius,box-shadow,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] sm:duration-500 ${
           isExpanded
             ? "w-full max-w-[28rem] rounded-[1.8rem] shadow-[0_18px_40px_rgba(15,23,42,0.08)] lg:max-w-[70rem] lg:rounded-full"
             : "w-full max-w-[22rem] rounded-full shadow-[0_10px_24px_rgba(15,23,42,0.08)] hover:-translate-y-0.5 hover:shadow-[0_16px_32px_rgba(15,23,42,0.12)]"
         }`}
       >
         <div
-          className={`relative transition-[height] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+          className={`relative transition-[height] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] sm:duration-[400ms] ${
             isExpanded ? "h-16 lg:h-20" : "h-12"
           }`}
         >
           <div
             aria-hidden={isExpanded}
-            className={`absolute inset-0 transition-[opacity,transform,filter] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+            className={`absolute inset-0 transition-[opacity,transform] duration-200 ease-out ${
               isExpanded
-                ? "pointer-events-none translate-y-1 scale-[0.985] opacity-0 blur-[3px]"
-                : "translate-y-0 scale-100 opacity-100 blur-0 delay-100"
+                ? "pointer-events-none translate-y-0 scale-[0.99] opacity-0"
+                : "translate-y-0 scale-100 opacity-100 delay-75"
             }`}
           >
             <button
@@ -220,10 +220,10 @@ function CompactSignupCta({
           </div>
 
           <form
-            className={`absolute inset-0 grid grid-cols-[minmax(4.75rem,1fr)_minmax(4.5rem,5.25rem)_minmax(7.75rem,42%)] content-center items-center gap-1.5 px-2 py-2 transition-[opacity,transform,filter] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] sm:grid-cols-[minmax(8rem,1fr)_auto_minmax(5.75rem,6.75rem)_minmax(10rem,12rem)] sm:gap-2.5 sm:px-3 lg:grid-cols-[minmax(9rem,1fr)_auto_7.25rem_minmax(13rem,14.5rem)] lg:gap-3 lg:px-5 lg:py-3 ${
+            className={`absolute inset-0 grid grid-cols-[minmax(4.75rem,1fr)_minmax(4.5rem,5.25rem)_minmax(7.75rem,42%)] content-center items-center gap-1.5 px-2 py-2 transition-[opacity,transform] duration-[250ms] ease-out sm:grid-cols-[minmax(8rem,1fr)_auto_minmax(5.75rem,6.75rem)_minmax(10rem,12rem)] sm:gap-2.5 sm:px-3 lg:grid-cols-[minmax(9rem,1fr)_auto_7.25rem_minmax(13rem,14.5rem)] lg:gap-3 lg:px-5 lg:py-3 ${
               isExpanded
-                ? "translate-y-0 opacity-100 blur-0 delay-150"
-                : "pointer-events-none translate-y-2 scale-[0.992] opacity-0 blur-[3px]"
+                ? "translate-y-0 opacity-100 delay-75"
+                : "pointer-events-none translate-y-1 scale-[0.995] opacity-0"
             }`}
             onSubmit={handleSubmit}
           >
