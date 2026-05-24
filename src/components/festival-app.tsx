@@ -15,8 +15,10 @@ import {
   ChevronDown,
   ChevronUp,
   CloudSun,
+  Copy,
   LoaderCircle,
   MapPin,
+  Phone,
   Share2,
   Trash2,
   UsersRound,
@@ -27,14 +29,21 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type FormEvent,
 } from "react";
 
 import { ToastRegion } from "@/components/toast-region";
 import { db, getParticipantsCollection, hasFirebaseConfig } from "@/lib/firebase";
-import type { LoadState, Participant, ToastMessage } from "@/lib/types";
+import type {
+  LoadState,
+  Participant,
+  SharedAlbumContact,
+  ToastMessage,
+} from "@/lib/types";
 import { formatParticipantLabel, getParticipantPartySize } from "@/lib/utils";
 
 const PARTICIPANTS_API_PATH = "/api/participants";
+const SHARED_ALBUM_CONTACTS_API_PATH = "/api/shared-album-contacts";
 const SHARED_PHOTOS_ALBUM_URL = process.env.NEXT_PUBLIC_SHARED_PHOTOS_ALBUM_URL;
 
 const festivalDetails = [
@@ -154,7 +163,7 @@ function CompactSignupCta({
     };
   }, [isExpanded]);
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const trimmedName = name.trim();
@@ -318,24 +327,42 @@ function FestivalInfoBand({
   tone = "sand",
   onQuickSignup,
   onDeleteParticipant,
+  onSubmitSharedAlbumContact,
+  onCopySharedAlbumContacts,
   signupDisabled = false,
+  sharedAlbumContactDisabled = false,
   participants = [],
+  sharedAlbumContacts = [],
   participantState = "ready",
+  sharedAlbumContactState = "ready",
   totalParticipants = 0,
   deletingParticipantIds = new Set<string>(),
 }: {
   tone?: "sand" | "green";
   onQuickSignup?: (entry: SignupEntry) => Promise<void>;
   onDeleteParticipant?: (participant: Participant) => Promise<void>;
+  onSubmitSharedAlbumContact?: (phone: string) => Promise<void>;
+  onCopySharedAlbumContacts?: () => Promise<void>;
   signupDisabled?: boolean;
+  sharedAlbumContactDisabled?: boolean;
   participants?: Participant[];
+  sharedAlbumContacts?: SharedAlbumContact[];
   participantState?: LoadState;
+  sharedAlbumContactState?: LoadState;
   totalParticipants?: number;
   deletingParticipantIds?: ReadonlySet<string>;
 }) {
   const isGreen = tone === "green";
   const sectionClasses = isGreen ? "bg-[#b9d7ae]" : "bg-[#eddabd]";
   const [isParticipantListOpen, setIsParticipantListOpen] = useState(false);
+  const [isSharedAlbumContactListOpen, setIsSharedAlbumContactListOpen] =
+    useState(false);
+  const [sharedAlbumPhone, setSharedAlbumPhone] = useState("");
+  const [isSubmittingSharedAlbumPhone, setIsSubmittingSharedAlbumPhone] =
+    useState(false);
+  const [sharedAlbumPhoneError, setSharedAlbumPhoneError] = useState<string | null>(
+    null,
+  );
   const sharedAlbumUrl =
     typeof SHARED_PHOTOS_ALBUM_URL === "string" &&
     SHARED_PHOTOS_ALBUM_URL.startsWith("https://")
@@ -404,6 +431,38 @@ function FestivalInfoBand({
 
   if (!onQuickSignup || !onDeleteParticipant) {
     return null;
+  }
+
+  async function handleSharedAlbumPhoneSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSharedAlbumPhoneError(null);
+
+    const phone = sharedAlbumPhone.trim();
+
+    if (phone.length < 6) {
+      setSharedAlbumPhoneError("Legg inn telefonnummeret ditt.");
+      return;
+    }
+
+    if (!onSubmitSharedAlbumContact) {
+      setSharedAlbumPhoneError("Telefonlisten er ikke klar enda.");
+      return;
+    }
+
+    setIsSubmittingSharedAlbumPhone(true);
+
+    try {
+      await onSubmitSharedAlbumContact(phone);
+      setSharedAlbumPhone("");
+    } catch (error) {
+      setSharedAlbumPhoneError(
+        error instanceof Error
+          ? error.message
+          : "Kunne ikke lagre telefonnummeret.",
+      );
+    } finally {
+      setIsSubmittingSharedAlbumPhone(false);
+    }
   }
 
   return (
@@ -555,6 +614,150 @@ function FestivalInfoBand({
                     i Netlify.
                   </div>
                 )}
+
+                <div className="w-full max-w-full rounded-[1.6rem] bg-white/35 p-4 text-left shadow-[0_16px_32px_rgba(15,23,42,0.08)] sm:w-[20rem]">
+                  <p className="text-base font-semibold text-slate-950">
+                    Vil du bli med i delt album?
+                  </p>
+                  <p className="mt-1 text-sm leading-5 text-slate-700">
+                    Legg telefonnummeret ditt til under.
+                  </p>
+
+                  <form
+                    className="mt-4 flex flex-col gap-2"
+                    onSubmit={handleSharedAlbumPhoneSubmit}
+                  >
+                    <label className="sr-only" htmlFor="shared-album-phone">
+                      Telefonnummer til delt album
+                    </label>
+                    <div className="flex min-w-0 items-center gap-2 rounded-full bg-white/75 px-3 py-2">
+                      <Phone className="size-5 shrink-0 text-[#0d8a58]" />
+                      <input
+                        autoComplete="tel"
+                        className="min-w-0 flex-1 bg-transparent text-base font-semibold text-slate-950 outline-none placeholder:text-slate-500"
+                        disabled={
+                          sharedAlbumContactDisabled ||
+                          isSubmittingSharedAlbumPhone
+                        }
+                        id="shared-album-phone"
+                        inputMode="tel"
+                        onChange={(event) => {
+                          setSharedAlbumPhone(event.target.value);
+                          setSharedAlbumPhoneError(null);
+                        }}
+                        placeholder="Telefonnummer"
+                        type="tel"
+                        value={sharedAlbumPhone}
+                      />
+                    </div>
+
+                    <button
+                      className="inline-flex h-11 w-full items-center justify-center rounded-full bg-[#0d8a58] px-4 text-sm font-semibold text-white transition hover:bg-[#0b744b] disabled:cursor-not-allowed disabled:bg-[#7db79a]"
+                      disabled={
+                        sharedAlbumContactDisabled ||
+                        isSubmittingSharedAlbumPhone
+                      }
+                      type="submit"
+                    >
+                      {isSubmittingSharedAlbumPhone ? (
+                        <LoaderCircle className="size-5 animate-spin" />
+                      ) : (
+                        "Legg til nummer"
+                      )}
+                    </button>
+
+                    {sharedAlbumPhoneError ? (
+                      <p className="px-2 text-sm font-medium text-[#9f1239]">
+                        {sharedAlbumPhoneError}
+                      </p>
+                    ) : null}
+                  </form>
+
+                  <div className="mt-4 overflow-hidden rounded-[1.35rem] border border-[#d9c5a5] bg-[#eddabd]">
+                    <button
+                      aria-controls="shared-album-contact-list"
+                      aria-expanded={isSharedAlbumContactListOpen}
+                      className={`inline-flex h-11 w-full items-center justify-center gap-2 px-4 text-sm font-semibold text-slate-900 transition hover:bg-[#e7d0ad] ${
+                        isSharedAlbumContactListOpen
+                          ? "border-b border-[#d9c5a5]"
+                          : "border-b border-transparent"
+                      }`}
+                      onClick={() =>
+                        setIsSharedAlbumContactListOpen((current) => !current)
+                      }
+                      type="button"
+                    >
+                      <UsersRound className="size-5 text-[#0d8a58]" />
+                      <span>Albumliste</span>
+                      <span className="rounded-full bg-white/65 px-2.5 py-1 text-sm font-bold text-slate-950">
+                        {sharedAlbumContacts.length}
+                      </span>
+                      <ChevronDown
+                        className={`size-5 text-slate-700 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                          isSharedAlbumContactListOpen ? "rotate-180" : "rotate-0"
+                        }`}
+                      />
+                    </button>
+
+                    <div
+                      aria-hidden={!isSharedAlbumContactListOpen}
+                      id="shared-album-contact-list"
+                      className={`overflow-hidden transition-[max-height,opacity] duration-300 ease-out ${
+                        isSharedAlbumContactListOpen
+                          ? "max-h-[24rem] opacity-100"
+                          : "pointer-events-none max-h-0 opacity-0"
+                      }`}
+                    >
+                      <div className="p-4">
+                        {sharedAlbumContactState === "loading" ? (
+                          <div className="flex min-h-20 items-center justify-center rounded-[1.1rem] bg-white/55">
+                            <LoaderCircle className="size-6 animate-spin text-[#0f766e]" />
+                          </div>
+                        ) : null}
+
+                        {sharedAlbumContactState !== "loading" &&
+                        sharedAlbumContacts.length === 0 ? (
+                          <div className="rounded-[1.1rem] bg-white/55 px-4 py-4 text-sm leading-6 text-slate-600">
+                            Ingen telefonnumre er lagt inn enda.
+                          </div>
+                        ) : null}
+
+                        {sharedAlbumContactState !== "loading" &&
+                        sharedAlbumContacts.length > 0 ? (
+                          <>
+                            <button
+                              className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+                              disabled={!onCopySharedAlbumContacts}
+                              onClick={() => {
+                                void onCopySharedAlbumContacts?.();
+                              }}
+                              type="button"
+                            >
+                              <Copy className="size-4" />
+                              Kopier alle
+                            </button>
+
+                            <ul className="mt-3 max-h-40 space-y-2 overflow-y-auto pr-1">
+                              {sharedAlbumContacts.map((contact, index) => (
+                                <li
+                                  className="flex items-center justify-between gap-3 rounded-[1rem] bg-white/70 px-3 py-2"
+                                  key={contact.id}
+                                >
+                                  <span className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-900">
+                                    {contact.phone}
+                                  </span>
+                                  <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                                    #{sharedAlbumContacts.length - index}
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          </>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -698,6 +901,59 @@ function mergeParticipants(
   return sortParticipants([...participantsById.values()]);
 }
 
+function toSharedAlbumContact(docId: string, data: Record<string, unknown>) {
+  return {
+    id: docId,
+    phone: typeof data.phone === "string" ? data.phone : "",
+    createdAtMs:
+      typeof data.createdAtMs === "number" ? data.createdAtMs : Date.now(),
+  } satisfies SharedAlbumContact;
+}
+
+function sortSharedAlbumContacts(contacts: SharedAlbumContact[]) {
+  return [...contacts].sort((left, right) => right.createdAtMs - left.createdAtMs);
+}
+
+function toSharedAlbumContactsFromPayload(payload: unknown) {
+  if (!payload || typeof payload !== "object") {
+    return [];
+  }
+
+  const contacts = (payload as { contacts?: unknown }).contacts;
+
+  if (!Array.isArray(contacts)) {
+    return [];
+  }
+
+  return sortSharedAlbumContacts(
+    contacts
+      .map((item) =>
+        item && typeof item === "object"
+          ? toSharedAlbumContact(
+              String((item as { id?: unknown }).id ?? crypto.randomUUID()),
+              item as Record<string, unknown>,
+            )
+          : null,
+      )
+      .filter((contact): contact is SharedAlbumContact => Boolean(contact?.phone)),
+  );
+}
+
+function mergeSharedAlbumContacts(
+  currentContacts: SharedAlbumContact[],
+  nextContacts: SharedAlbumContact[],
+) {
+  const contactsById = new Map(
+    currentContacts.map((contact) => [contact.id, contact]),
+  );
+
+  nextContacts.forEach((contact) => {
+    contactsById.set(contact.id, contact);
+  });
+
+  return sortSharedAlbumContacts([...contactsById.values()]);
+}
+
 async function fetchSharedParticipants() {
   const response = await fetch(PARTICIPANTS_API_PATH, {
     cache: "no-store",
@@ -710,11 +966,28 @@ async function fetchSharedParticipants() {
   return toParticipantsFromPayload(await response.json());
 }
 
+async function fetchSharedAlbumContacts() {
+  const response = await fetch(SHARED_ALBUM_CONTACTS_API_PATH, {
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error("Kunne ikke hente telefonlisten.");
+  }
+
+  return toSharedAlbumContactsFromPayload(await response.json());
+}
+
 export function FestivalApp() {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [participantsState, setParticipantsState] = useState<LoadState>(
     hasFirebaseConfig ? "loading" : "disabled",
   );
+  const [sharedAlbumContacts, setSharedAlbumContacts] = useState<
+    SharedAlbumContact[]
+  >([]);
+  const [sharedAlbumContactState, setSharedAlbumContactState] =
+    useState<LoadState>("loading");
   const [deletingParticipantIds, setDeletingParticipantIds] = useState<Set<string>>(
     () => new Set(),
   );
@@ -811,6 +1084,53 @@ export function FestivalApp() {
     );
 
     return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    let isActive = true;
+
+    async function syncSharedAlbumContacts({ silent = false } = {}) {
+      try {
+        if (!silent) {
+          setSharedAlbumContactState("loading");
+        }
+
+        const contacts = await fetchSharedAlbumContacts();
+
+        if (!isActive) {
+          return;
+        }
+
+        startTransition(() => {
+          setSharedAlbumContacts(contacts);
+          setSharedAlbumContactState("ready");
+        });
+      } catch {
+        if (!isActive) {
+          return;
+        }
+
+        setSharedAlbumContactState("error");
+
+        if (!silent) {
+          pushToast({
+            tone: "error",
+            title: "Kunne ikke hente telefonliste",
+            description: "Prov aa laste siden pa nytt.",
+          });
+        }
+      }
+    }
+
+    void syncSharedAlbumContacts();
+    const intervalId = window.setInterval(() => {
+      void syncSharedAlbumContacts({ silent: true });
+    }, 6_000);
+
+    return () => {
+      isActive = false;
+      window.clearInterval(intervalId);
+    };
   }, []);
 
   useEffect(() => {
@@ -994,6 +1314,70 @@ export function FestivalApp() {
     }
   }
 
+  async function handleSubmitSharedAlbumContact(phone: string) {
+    const response = await fetch(SHARED_ALBUM_CONTACTS_API_PATH, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ phone }),
+    });
+
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+      throw new Error(payload?.error || "Kunne ikke lagre telefonnummeret.");
+    }
+
+    const submittedContacts = toSharedAlbumContactsFromPayload(
+      await response.json(),
+    );
+
+    startTransition(() => {
+      setSharedAlbumContacts((current) =>
+        mergeSharedAlbumContacts(current, submittedContacts),
+      );
+      setSharedAlbumContactState("ready");
+    });
+
+    pushToast({
+      tone: "success",
+      title: "Nummeret er lagt til",
+      description: "Jeg kan kopiere listen og invitere deg til delt album.",
+    });
+  }
+
+  async function handleCopySharedAlbumContacts() {
+    if (sharedAlbumContacts.length === 0) {
+      return;
+    }
+
+    const text = sortSharedAlbumContacts(sharedAlbumContacts)
+      .map((contact) => contact.phone)
+      .join("\n");
+
+    try {
+      if (!navigator.clipboard) {
+        throw new Error("Clipboard er ikke tilgjengelig.");
+      }
+
+      await navigator.clipboard.writeText(text);
+
+      pushToast({
+        tone: "success",
+        title: "Telefonlisten er kopiert",
+        description: `${sharedAlbumContacts.length} nummer ligger pa utklippstavlen.`,
+      });
+    } catch {
+      pushToast({
+        tone: "error",
+        title: "Kunne ikke kopiere listen",
+        description: "Marker telefonnumrene i listen og kopier manuelt.",
+      });
+    }
+  }
+
   return (
     <div className="relative overflow-hidden">
       <div className="hero-glow absolute left-[-10rem] top-[-4rem] size-[20rem] rounded-full bg-[#ffe5b4]" />
@@ -1095,9 +1479,14 @@ export function FestivalApp() {
             <FestivalInfoBand
               tone="green"
               deletingParticipantIds={deletingParticipantIds}
+              onCopySharedAlbumContacts={handleCopySharedAlbumContacts}
               onDeleteParticipant={handleDeleteParticipant}
               onQuickSignup={handleQuickSignup}
+              onSubmitSharedAlbumContact={handleSubmitSharedAlbumContact}
               signupDisabled={false}
+              sharedAlbumContactDisabled={false}
+              sharedAlbumContacts={sharedAlbumContacts}
+              sharedAlbumContactState={sharedAlbumContactState}
               participants={participants}
               participantState={participantsState}
               totalParticipants={totalParticipants}

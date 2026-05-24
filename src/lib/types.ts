@@ -13,6 +13,12 @@ export type GalleryItem = {
   createdAtMs: number;
 };
 
+export type SharedAlbumContact = {
+  id: string;
+  phone: string;
+  createdAtMs: number;
+};
+
 export type WeatherPayload = {
   location: string;
   temperature: number;
