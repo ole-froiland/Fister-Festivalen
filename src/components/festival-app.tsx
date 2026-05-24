@@ -622,7 +622,20 @@ function FestivalInfoBand({
                     <Share2 className="size-5 text-white" />
                     &Aring;pne delt iPhone-album
                   </a>
-                ) : null}
+                ) : (
+                  <button
+                    className="inline-flex h-12 w-full max-w-full items-center justify-center gap-2 rounded-full bg-[#0d8a58]/45 px-5 text-base font-semibold text-white sm:w-[20rem]"
+                    onClick={() => {
+                      window.alert(
+                        "Delt iPhone-album er ikke koblet til enda. Lag et delt album i Bilder og legg lenken inn som NEXT_PUBLIC_SHARED_PHOTOS_ALBUM_URL i Netlify.",
+                      );
+                    }}
+                    type="button"
+                  >
+                    <Share2 className="size-5 text-white" />
+                    Koble delt iPhone-album
+                  </button>
+                )}
 
                 <a
                   className={`inline-flex h-12 w-full max-w-full items-center justify-center gap-2 rounded-full px-5 text-base font-semibold !text-white transition visited:!text-white sm:w-[20rem] ${
