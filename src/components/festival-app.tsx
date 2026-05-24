@@ -54,7 +54,6 @@ const festivalDetails = [
     icon: CalendarDays,
     label: "Nar",
     value: "Andre halvdel av juli",
-    note: "Datoen er ikke helt satt enda – vi kommer tilbake til den når det nærmer seg og været er mer satt.",
   },
   {
     icon: CloudSun,
@@ -389,6 +388,11 @@ function FestivalInfoBand({
                 Det eneste dere trenger &aring; ta med er badekl&aelig;r,
                 h&aring;ndkle og godt hum&oslash;r!
               </p>
+
+              <p>
+                Datoen er ikke helt satt enda, vi kommer tilbake til den
+                n&aring;r det n&aelig;rmer seg og v&aelig;ret er mer satt.
+              </p>
             </div>
 
             <div className="mx-auto mt-8 grid max-w-[22rem] gap-4 sm:max-w-4xl sm:gap-4 md:grid-cols-3">
@@ -411,11 +415,6 @@ function FestivalInfoBand({
                         <p className="mt-2 text-[1.3rem] font-semibold text-slate-900 sm:text-xl">
                           {detail.value}
                         </p>
-                        {"note" in detail && detail.note ? (
-                          <p className="mt-2 text-sm leading-6 text-slate-600 sm:text-base">
-                            {detail.note}
-                          </p>
-                        ) : null}
                       </div>
                     </div>
                   </div>
