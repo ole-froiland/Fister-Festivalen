@@ -18,6 +18,7 @@ import {
   Download,
   LoaderCircle,
   MapPin,
+  Share2,
   Trash2,
   UploadCloud,
   UsersRound,
@@ -66,6 +67,11 @@ type MarqueePhoto = {
 type SignupEntry = {
   name: string;
   companionCount: number;
+};
+
+type ShareNavigator = Navigator & {
+  canShare?: (data: ShareData) => boolean;
+  share?: (data: ShareData) => Promise<void>;
 };
 
 function CompactSignupCta({
@@ -321,10 +327,12 @@ function FestivalInfoBand({
   onQuickSignup,
   onDeleteParticipant,
   onImageUpload,
+  onShareAllImages,
   signupDisabled = false,
   galleryItems = [],
   galleryState = "ready",
   isUploadingImages = false,
+  isSharingImages = false,
   participants = [],
   participantState = "ready",
   totalParticipants = 0,
@@ -334,10 +342,12 @@ function FestivalInfoBand({
   onQuickSignup?: (entry: SignupEntry) => Promise<void>;
   onDeleteParticipant?: (participant: Participant) => Promise<void>;
   onImageUpload?: (files: File[]) => Promise<void>;
+  onShareAllImages?: () => Promise<void>;
   signupDisabled?: boolean;
   galleryItems?: GalleryItem[];
   galleryState?: LoadState;
   isUploadingImages?: boolean;
+  isSharingImages?: boolean;
   participants?: Participant[];
   participantState?: LoadState;
   totalParticipants?: number;
@@ -578,17 +588,35 @@ function FestivalInfoBand({
                   {isUploadingImages ? "Laster opp..." : "Last opp bilder"}
                 </button>
 
+                <button
+                  className={`inline-flex h-12 w-full max-w-full items-center justify-center gap-2 rounded-full px-5 text-base font-semibold text-white transition sm:w-[20rem] ${
+                    galleryItems.length > 0
+                      ? "bg-[#0d8a58] hover:bg-[#0b744b]"
+                      : "cursor-not-allowed bg-[#0d8a58]/45"
+                  }`}
+                  disabled={galleryItems.length === 0 || isSharingImages}
+                  onClick={() => void onShareAllImages?.()}
+                  type="button"
+                >
+                  {isSharingImages ? (
+                    <LoaderCircle className="size-5 animate-spin" />
+                  ) : (
+                    <Share2 className="size-5 text-white" />
+                  )}
+                  {isSharingImages ? "Klargjor bilder..." : "Lagre alle til Bilder"}
+                </button>
+
                 <a
                   className={`inline-flex h-12 w-full max-w-full items-center justify-center gap-2 rounded-full px-5 text-base font-semibold !text-white transition visited:!text-white sm:w-[20rem] ${
                     galleryItems.length > 0
-                      ? "bg-[#0d8a58] hover:bg-[#0b744b]"
-                      : "pointer-events-none bg-[#0d8a58]/45"
+                      ? "bg-[#0d8a58]/85 hover:bg-[#0b744b]"
+                      : "pointer-events-none bg-[#0d8a58]/35"
                   }`}
                   download="fister-festivalen-bilder.zip"
                   href={IMAGE_ARCHIVE_PATH}
                 >
                   <Download className="size-5 text-white" />
-                  Last ned alle
+                  Last ned zip
                 </a>
               </div>
 
@@ -885,6 +913,7 @@ export function FestivalApp() {
   const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
   const [galleryState, setGalleryState] = useState<LoadState>("loading");
   const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const [isSharingImages, setIsSharingImages] = useState(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const totalParticipants = participants.reduce(
     (sum, participant) => sum + getParticipantPartySize(participant),
@@ -1201,6 +1230,75 @@ export function FestivalApp() {
     }
   }
 
+  function downloadImageArchive() {
+    const link = document.createElement("a");
+    link.href = IMAGE_ARCHIVE_PATH;
+    link.download = "fister-festivalen-bilder.zip";
+    document.body.append(link);
+    link.click();
+    link.remove();
+  }
+
+  async function handleShareAllImages() {
+    if (galleryItems.length === 0) {
+      return;
+    }
+
+    setIsSharingImages(true);
+
+    try {
+      const files = await Promise.all(
+        galleryItems.map(async (item) => {
+          const response = await fetch(item.url);
+
+          if (!response.ok) {
+            throw new Error(`Kunne ikke hente ${item.name}.`);
+          }
+
+          const blob = await response.blob();
+          const fileType = blob.type || "image/jpeg";
+          const fileName = item.name.includes(".")
+            ? item.name
+            : `${item.name}.jpg`;
+
+          return new File([blob], fileName, {
+            type: fileType,
+          });
+        }),
+      );
+      const shareNavigator = navigator as ShareNavigator;
+      const shareData: ShareData = {
+        files,
+        title: "Fister-Festivalen bilder",
+      };
+
+      if (!shareNavigator.share || !shareNavigator.canShare?.({ files })) {
+        downloadImageArchive();
+        pushToast({
+          tone: "info",
+          title: "Mobilen stotter ikke deling av alle bildene",
+          description: "Jeg startet zip-nedlasting i stedet.",
+        });
+        return;
+      }
+
+      await shareNavigator.share(shareData);
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return;
+      }
+
+      downloadImageArchive();
+      pushToast({
+        tone: "info",
+        title: "Kunne ikke dele alle bildene direkte",
+        description: "Jeg startet zip-nedlasting i stedet.",
+      });
+    } finally {
+      setIsSharingImages(false);
+    }
+  }
+
   async function handleDeleteParticipant(participant: Participant) {
     setDeletingParticipantIds((current) => {
       const next = new Set(current);
@@ -1372,10 +1470,12 @@ export function FestivalApp() {
               deletingParticipantIds={deletingParticipantIds}
               galleryItems={galleryItems}
               galleryState={galleryState}
+              isSharingImages={isSharingImages}
               isUploadingImages={isUploadingImages}
               onDeleteParticipant={handleDeleteParticipant}
               onImageUpload={handleImageUpload}
               onQuickSignup={handleQuickSignup}
+              onShareAllImages={handleShareAllImages}
               signupDisabled={false}
               participants={participants}
               participantState={participantsState}
