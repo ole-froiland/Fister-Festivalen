@@ -14,7 +14,7 @@ type SignupEntryPayload = {
 };
 
 function getParticipantsStore() {
-  return getStore(PARTICIPANTS_STORE_NAME);
+  return getStore(PARTICIPANTS_STORE_NAME, { consistency: "strong" });
 }
 
 function toParticipant(docId: string, data: unknown): Participant | null {

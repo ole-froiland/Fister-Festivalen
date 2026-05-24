@@ -20,7 +20,7 @@ export async function DELETE(
       );
     }
 
-    const store = getStore(PARTICIPANTS_STORE_NAME);
+    const store = getStore(PARTICIPANTS_STORE_NAME, { consistency: "strong" });
     await store.delete(`${PARTICIPANTS_KEY_PREFIX}${participantId}`);
 
     return NextResponse.json({ ok: true });

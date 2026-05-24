@@ -680,6 +680,39 @@ function sortParticipants(participants: Participant[]) {
   return [...participants].sort((left, right) => right.createdAtMs - left.createdAtMs);
 }
 
+function toParticipantsFromPayload(payload: unknown) {
+  if (!payload || typeof payload !== "object") {
+    return [];
+  }
+
+  const participants = (payload as { participants?: unknown }).participants;
+
+  if (!Array.isArray(participants)) {
+    return [];
+  }
+
+  return sortParticipants(
+    participants.map((item) =>
+      toParticipant(String(item?.id ?? crypto.randomUUID()), item),
+    ),
+  );
+}
+
+function mergeParticipants(
+  currentParticipants: Participant[],
+  nextParticipants: Participant[],
+) {
+  const participantsById = new Map(
+    currentParticipants.map((participant) => [participant.id, participant]),
+  );
+
+  nextParticipants.forEach((participant) => {
+    participantsById.set(participant.id, participant);
+  });
+
+  return sortParticipants([...participantsById.values()]);
+}
+
 async function fetchSharedParticipants() {
   const response = await fetch(PARTICIPANTS_API_PATH, {
     cache: "no-store",
@@ -689,17 +722,7 @@ async function fetchSharedParticipants() {
     throw new Error("Kunne ikke hente deltakerlisten.");
   }
 
-  const payload = (await response.json()) as { participants?: unknown };
-
-  if (!Array.isArray(payload.participants)) {
-    return [];
-  }
-
-  return sortParticipants(
-    payload.participants.map((item) =>
-      toParticipant(String(item?.id ?? crypto.randomUUID()), item),
-    ),
-  );
+  return toParticipantsFromPayload(await response.json());
 }
 
 export function FestivalApp() {
@@ -845,10 +868,12 @@ export function FestivalApp() {
         throw new Error(payload?.error || "Kunne ikke lagre paameldingen.");
       }
 
-      const sharedParticipants = await fetchSharedParticipants();
+      const submittedParticipants = toParticipantsFromPayload(await response.json());
 
       startTransition(() => {
-        setParticipants(sharedParticipants);
+        setParticipants((current) =>
+          mergeParticipants(current, submittedParticipants),
+        );
         setParticipantsState("ready");
       });
 
@@ -936,10 +961,12 @@ export function FestivalApp() {
           throw new Error(payload?.error || "Kunne ikke slette deltakeren.");
         }
 
-        const sharedParticipants = await fetchSharedParticipants();
-
         startTransition(() => {
-          setParticipants(sharedParticipants);
+          setParticipants((current) =>
+            current.filter(
+              (currentParticipant) => currentParticipant.id !== participant.id,
+            ),
+          );
           setParticipantsState("ready");
         });
 
