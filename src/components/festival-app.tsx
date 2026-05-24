@@ -188,18 +188,18 @@ function CompactSignupCta({
   }
 
   return (
-    <div className="mx-auto mt-8 w-full max-w-[28rem] sm:mt-12 sm:max-w-[58rem]">
+    <div className="mx-auto mt-8 w-full max-w-[28rem] sm:mt-12 sm:max-w-[62rem]">
       <div
         ref={containerRef}
         className={`mx-auto origin-center overflow-hidden border border-[#d9c5a5] bg-[#eddabd] will-change-[width,max-width,transform] transition-[width,max-width,border-radius,box-shadow,transform] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${
           isExpanded
-            ? "w-full max-w-[28rem] rounded-[1.8rem] shadow-[0_18px_40px_rgba(15,23,42,0.08)] sm:max-w-[58rem] sm:rounded-full"
+            ? "w-full max-w-[28rem] rounded-[1.8rem] shadow-[0_18px_40px_rgba(15,23,42,0.08)] sm:max-w-[62rem] md:rounded-full"
             : "w-full max-w-[22rem] rounded-full shadow-[0_10px_24px_rgba(15,23,42,0.08)] hover:-translate-y-0.5 hover:shadow-[0_16px_32px_rgba(15,23,42,0.12)]"
         }`}
       >
         <div
           className={`relative transition-[height] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-            isExpanded ? "h-[12.75rem] sm:h-20" : "h-12"
+            isExpanded ? "h-[13.25rem] md:h-20" : "h-12"
           }`}
         >
           <div
@@ -221,7 +221,7 @@ function CompactSignupCta({
           </div>
 
           <form
-            className={`absolute inset-0 flex flex-wrap items-center gap-2.5 px-3 py-3.5 transition-[opacity,transform,filter] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] xl:flex-nowrap xl:gap-3 xl:px-4 xl:py-3 ${
+            className={`absolute inset-0 grid grid-cols-1 content-center gap-2.5 px-3 py-3.5 transition-[opacity,transform,filter] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] md:grid-cols-[minmax(12rem,1fr)_auto_8.5rem_minmax(12rem,auto)] md:items-center md:gap-4 md:px-4 md:py-3 ${
               isExpanded
                 ? "translate-y-0 opacity-100 blur-0 delay-150"
                 : "pointer-events-none translate-y-2 scale-[0.992] opacity-0 blur-[3px]"
@@ -229,7 +229,7 @@ function CompactSignupCta({
             onSubmit={handleSubmit}
           >
             <input
-              className="order-1 h-12 w-full min-w-0 basis-full bg-transparent px-3 text-base font-medium text-slate-950 outline-none placeholder:text-base placeholder:font-medium placeholder:text-slate-950 placeholder:opacity-100 disabled:cursor-default sm:h-14 sm:px-5 xl:flex-1 xl:basis-auto xl:min-w-[13rem] xl:text-[0.92rem] xl:placeholder:text-[0.92rem]"
+              className="h-12 w-full min-w-0 bg-transparent px-3 text-base font-medium text-slate-950 outline-none placeholder:text-base placeholder:font-medium placeholder:text-slate-950 placeholder:opacity-100 disabled:cursor-default md:h-14 md:px-5 md:text-[0.92rem] md:placeholder:text-[0.92rem]"
               autoComplete="name"
               disabled={!isExpanded || isSubmitting}
               enterKeyHint="done"
@@ -248,13 +248,13 @@ function CompactSignupCta({
 
             <span
               aria-hidden="true"
-              className="order-2 hidden shrink-0 pl-1 text-lg font-semibold text-slate-700 xl:block xl:translate-x-3"
+              className="hidden shrink-0 text-lg font-semibold text-slate-700 md:block"
             >
               +
             </span>
 
-            <div className="order-3 flex h-12 w-full basis-full min-w-[8.5rem] shrink-0 items-center justify-between rounded-full bg-white/40 px-3 xl:ml-8 xl:h-14 xl:w-auto xl:basis-auto xl:rounded-none xl:bg-transparent xl:px-0 2xl:ml-12">
-              <div className="min-w-0 text-left xl:min-w-[4.5rem] xl:text-center">
+            <div className="flex h-12 w-full min-w-0 shrink-0 items-center justify-between rounded-full bg-white/45 px-3 ring-1 ring-white/35 md:h-14">
+              <div className="min-w-0 text-left">
                 <p className="text-[0.56rem] font-semibold uppercase tracking-[0.18em] text-slate-500">
                   Ekstra
                 </p>
@@ -287,14 +287,17 @@ function CompactSignupCta({
             </div>
 
             <button
-              className="order-4 inline-flex h-12 w-full basis-full touch-manipulation items-center justify-center rounded-full bg-[#0d8a58] px-5 text-[0.88rem] leading-none font-semibold whitespace-nowrap text-white transition hover:bg-[#0b744b] disabled:cursor-not-allowed disabled:opacity-50 xl:ml-auto xl:h-14 xl:w-auto xl:basis-auto xl:px-6 xl:text-[0.9rem]"
+              className="inline-flex h-12 w-full touch-manipulation items-center justify-center gap-2 rounded-full bg-[#0d8a58] px-5 text-[0.88rem] leading-none font-semibold whitespace-nowrap text-white shadow-[0_10px_24px_rgba(13,138,88,0.24)] ring-1 ring-white/25 transition hover:-translate-y-0.5 hover:bg-[#0b744b] hover:shadow-[0_14px_28px_rgba(13,138,88,0.3)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0d8a58] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 md:h-14 md:px-6 md:text-[0.9rem]"
               disabled={!isExpanded || disabled || isSubmitting}
               type="submit"
             >
               {isSubmitting ? (
                 <LoaderCircle className="size-5 animate-spin" />
               ) : (
-                submitLabel
+                <>
+                  <UsersRound className="size-4 shrink-0" />
+                  <span>{submitLabel}</span>
+                </>
               )}
             </button>
           </form>
